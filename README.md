@@ -1,4 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+# RAG Chat Application - Frontend
+
+A modern, production-ready chat application frontend built with Next.js, featuring AI-powered conversations with Retrieval-Augmented Generation (RAG) capabilities.
+
+##  Tech Stack
+
+- **Next.js 14** - React framework with App Router
+- **TypeScript** - Type safety and enhanced developer experience
+- **Tailwind CSS** - Utility-first CSS framework
+- **shadcn/ui** - High-quality, accessible UI components
+- **JWT Authentication** - Secure token-based authentication
+- **Real-time Chat** - WebSocket integration for live messaging
+
+##  Features
+
+-  Secure JWT-based authentication (access/refresh tokens)
+-  Real-time chat interface with streaming responses
+-  Document upload and RAG-powered Q&A
+-  Modern, responsive UI with dark/light mode
+-  Mobile-optimized design
+-  Optimistic UI updates for smooth UX
+
+## 🛠️ Development Setup
+
+### Prerequisites
+
+- Node.js 18+ and npm/yarn
+- Backend API running (see [Backend Repository](https://github.com/yourusername/rag-chat-backend))
+
+### Installation
+
 
 ## Getting Started
 
