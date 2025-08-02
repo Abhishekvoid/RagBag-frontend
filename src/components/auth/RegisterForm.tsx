@@ -58,7 +58,7 @@ export function RegisterForm() {
 
     // Transform data to match Django's expected field names
     const djangoData = {
-      username: data.username,
+      username: data.name,
       email: data.email,
       password1: data.password, // ✅ Correct: maps password to password1
       password2: data.password2, // ✅ Correct: uses password2
@@ -142,15 +142,15 @@ export function RegisterForm() {
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
             <Input
-              {...register("username")}
+              {...register("name")}
               id="username"
               type="text"
               placeholder="johndoe"
-              className={errors.username ? "border-destructive" : ""}
+              className={errors.name ? "border-destructive" : ""}
             />
-            {errors.username && (
+            {errors.name && (
               <p className="text-sm text-destructive">
-                {errors.username.message}
+                {errors.name.message}
               </p>
             )}
           </div>

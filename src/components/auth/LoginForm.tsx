@@ -84,7 +84,7 @@ export function LoginForm() {
     }, 100);
 
     // Redirect to dashboard
-
+     router.push('/dashboard');
     
   } catch (error: unknown) {
     console.error('❌ Login form error occurred:', error);
