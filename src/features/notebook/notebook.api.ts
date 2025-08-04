@@ -72,6 +72,10 @@ const subjectResponseSchema = z.object({
 // A schema for the list of subjects, which is an array of the single subject schema
 const subjectListResponseSchema = z.array(subjectResponseSchema);
 
+const questionsResponseSchema = z.object({
+  questions: z.string(),
+});
+
 // --- TypeScript Types inferred from Zod Schemas ---
 // These are automatically generated from the schemas above. No manual work needed.
 export type ChatMessageDTO = z.infer<typeof chatMessageResponseSchema>;
@@ -131,4 +135,10 @@ export const notebookApi = {
   // === Chat Messages ===
   sendChatMessage: (data: ChatMessageInput) =>
     api.post<ChatMessageDTO>("/auth/chatmessage/", data),
+
+  generateQuestions: async (chapterId: string) => {
+    const response = await api.post('/auth/generate-questions/', { chapter_id: chapterId });
+    // Validate the response from the backend to ensure it's in the expected format.
+    return questionsResponseSchema.parse(response.data);
+  },
 };
