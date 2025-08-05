@@ -59,7 +59,7 @@ const chapterResponseSchema = z.object({
 });
 
 const subjectResponseSchema = z.object({
-  id: z.string().uuid(),
+  // id: z.string().uuid(),
   user: z.string(), // Assuming user is a string UUID
   name: z.string(),
   description: z.string().nullable(), // Use nullable for optional fields that can be null

@@ -1,19 +1,21 @@
-"use client";
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+
 import { useNotebookStore } from "@/lib/store/useNotebook";
 import {
   subjectSchema,
   SubjectInput,
 } from "@/features/notebook/notebook.schema";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -26,12 +28,9 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Textarea } from "@/components/ui/textarea"; 
 
 export function NewSubjectModal() {
-
   const [isOpen, setIsOpen] = useState(false);
-
   const { addSubject } = useNotebookStore();
 
   const form = useForm<SubjectInput>({
@@ -42,19 +41,33 @@ export function NewSubjectModal() {
     },
   });
 
- 
-  const onSubmit = async (values: SubjectInput) => {
-    try {
-     
-      await addSubject(values);
+  const handleManualSubmit = async () => {
+  console.log("🟣 You clicked the submit button");
 
-      form.reset(); 
-      setIsOpen(false); 
-    } catch (error) {
-      
-      form.setError("root", { message: (error as Error).message });
+  const result = await form.handleSubmit(
+    async (values: SubjectInput) => {
+      console.log("✅ Manual submit triggered!");
+      console.log("📦 Submitted values:", values);
+
+      try {
+        await addSubject(values);
+        form.reset();
+        setIsOpen(false);
+      } catch (error) {
+        form.setError("root", {
+          message: (error as Error).message,
+        });
+      }
+    },
+    (errors) => {
+      // 🔥 This gets called when validation fails
+      console.log("❌ Validation failed");
+      console.log("🛠 Errors:", errors);
     }
-  };
+  )();
+
+  console.log("📤 handleSubmit finished");
+};
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -63,16 +76,17 @@ export function NewSubjectModal() {
           New Subject
         </Button>
       </DialogTrigger>
+
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Create a New Subject</DialogTitle>
           <DialogDescription>
-            Subjects help you organize your chapters and notes. Give it a clear
-            name.
+            Subjects help you organize your chapters and notes. Give it a clear name.
           </DialogDescription>
         </DialogHeader>
+
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <form className="space-y-4 py-4">
             <FormField
               control={form.control}
               name="name"
@@ -86,6 +100,7 @@ export function NewSubjectModal() {
                 </FormItem>
               )}
             />
+
             <FormField
               control={form.control}
               name="description"
@@ -93,28 +108,37 @@ export function NewSubjectModal() {
                 <FormItem>
                   <FormLabel>Description (Optional)</FormLabel>
                   <FormControl>
-                    <Textarea
-                      placeholder="A brief description of the subject."
-                      {...field}
-                    />
+                    <Textarea placeholder="Brief description of the subject." {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
             {form.formState.errors.root && (
               <p className="text-sm font-medium text-destructive">
                 {form.formState.errors.root.message}
               </p>
             )}
+          </form>
+
+          <DialogFooter>
             <Button
-              type="submit"
+              type="button"
+              variant="outline"
+              onClick={() => setIsOpen(false)}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              type="button"
               disabled={form.formState.isSubmitting}
-              className="w-full"
+              onClick={handleManualSubmit}
             >
               {form.formState.isSubmitting ? "Creating..." : "Create Subject"}
             </Button>
-          </form>
+          </DialogFooter>
         </Form>
       </DialogContent>
     </Dialog>

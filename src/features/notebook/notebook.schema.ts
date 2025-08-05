@@ -15,18 +15,19 @@ const MAX_UPLOAD_SIZE = 50 * 1024 * 1024;
 
 
 export const subjectSchema = z.object({
+  // id: z.uuid(),
   name: z.string().min(3, "Subject name can't be blank").trim(),
   description: z.string().optional(),
 });
 
 export const chapterSchema = z.object({
-  subject: z.string().uuid().optional().nullable(),
+  subject: z.uuid().optional().nullable(),
   name: z.string().min(3, "chapter name can't be blank").trim(),
   order: z.number().min(1, "order must be poositive integer"),
 });
 
 export const documentSchema = z.object({
-  chapter: z.string().uuid(),
+  chapter: z.uuid(),
   title: z.string().min(1, "Title cannot be empty").max(100, "Title too long"),
   file: z
     .instanceof(File)
@@ -43,14 +44,14 @@ export const documentSchema = z.object({
 });
 
 export const chatSessionSchema = z.object({
-  subject: z.string().uuid().optional().nullable(),
-  chapter: z.string().uuid().optional().nullable(),
+  subject: z.uuid().optional().nullable(),
+  chapter: z.uuid().optional().nullable(),
   title: z.string().min(3, "title can't be empty").optional(),
 });
 
 const senderEnum = ["user", "ai"] as const;
 export const chatMessageSchema = z.object({
-  session: z.string().uuid({ message: "Invalid session ID" }),
+  session: z.uuid({ message: "Invalid session ID" }),
   sender: z.enum(senderEnum, { message: "Sender is required" }),
   text: z.string().min(1, "Message text cannot be empty"),
 });
