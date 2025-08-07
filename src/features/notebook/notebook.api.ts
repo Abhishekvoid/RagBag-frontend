@@ -48,7 +48,7 @@ const documentResponseSchema = z.object({
 });
 
 const chapterResponseSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   subject: z.string().uuid(),
   name: z.string(),
   order: z.number(),
@@ -59,7 +59,7 @@ const chapterResponseSchema = z.object({
 });
 
 const subjectResponseSchema = z.object({
-  // id: z.string().uuid(),
+  id: z.uuid(),
   user: z.string(), // Assuming user is a string UUID
   name: z.string(),
   description: z.string().nullable(), // Use nullable for optional fields that can be null

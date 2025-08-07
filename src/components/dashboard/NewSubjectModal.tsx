@@ -43,12 +43,12 @@ export function NewSubjectModal() {
 
   const handleManualSubmit = async () => {
   console.log("🟣 You clicked the submit button");
-
+ 
   const result = await form.handleSubmit(
     async (values: SubjectInput) => {
       console.log("✅ Manual submit triggered!");
       console.log("📦 Submitted values:", values);
-
+      
       try {
         await addSubject(values);
         form.reset();
