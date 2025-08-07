@@ -21,7 +21,7 @@ export const subjectSchema = z.object({
 });
 
 export const chapterSchema = z.object({
-  subject: z.string().uuid("You must select a subject."), 
+  subject: z.uuid("You must select a subject.").optional().nullable(),
   name: z.string().min(3, "chapter name can't be blank").trim(),
   order: z.number().min(1, "order must be poositive integer"),
 });

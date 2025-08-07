@@ -13,8 +13,8 @@ import {
 // This is our runtime "safety net" for all incoming data from the backend.
 
 const chatMessageResponseSchema = z.object({
-  id: z.string().uuid(),
-  session: z.string().uuid(),
+  id: z.uuid(),
+  session: z.uuid(),
   sender: z.enum(["user", "ai"]),
   text: z.string(),
   created_at: z.string().datetime(),
@@ -25,10 +25,10 @@ const chatMessageResponseSchema = z.object({
 });
 
 const chatSessionResponseSchema = z.object({
-  id: z.string().uuid(),
+  id: z.uuid(),
   user: z.string(), // Assuming user is a string UUID
-  subject: z.string().uuid().nullable(),
-  chapter: z.string().uuid().nullable(),
+  subject: z.uuid().nullable(),
+  chapter: z.uuid().nullable(),
   title: z.string(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
@@ -36,8 +36,8 @@ const chatSessionResponseSchema = z.object({
 });
 
 const documentResponseSchema = z.object({
-  id: z.string().uuid(),
-  chapter: z.string().uuid(),
+  id: z.uuid(),
+  chapter: z.uuid(),
   user: z.string(), // Assuming user is a string UUID
   title: z.string(),
   file: z.string().url(), // Changed from file_url to match your serializer
@@ -47,29 +47,26 @@ const documentResponseSchema = z.object({
   updated_at: z.string().datetime(),
 });
 
-const chapterResponseSchema = z.object({
-  id: z.uuid(),
-  subject: z.string().uuid(),
+export const chapterResponseSchema = z.object({
+  id: z.uuid(), // Note: I changed z.uuid() to z.string().uuid() to match the others
+  subject: z.uuid().nullable(),
   name: z.string(),
   order: z.number(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
-  // Assuming your Chapter detail view will nest documents
   documents: z.array(documentResponseSchema).optional().default([]),
 });
 
-const subjectResponseSchema = z.object({
-  id: z.uuid(),
-  user: z.string(), // Assuming user is a string UUID
+export const subjectResponseSchema = z.object({
+  id: z.union([z.uuid(), z.literal("uncategorized-chapters")]), 
+  user: z.string(),
   name: z.string(),
-  description: z.string().nullable(), // Use nullable for optional fields that can be null
-  created_at: z.string().datetime(),
-  updated_at: z.string().datetime(),
-  // This assumes your Subject list/detail view nests the chapters. This is a common pattern.
+  description: z.string().nullable(),
+  created_at: z.string().nullable(),
+  updated_at: z.string().nullable(),
   chapters: z.array(chapterResponseSchema).optional().default([]),
 });
 
-// A schema for the list of subjects, which is an array of the single subject schema
 const subjectListResponseSchema = z.array(subjectResponseSchema);
 
 const questionsResponseSchema = z.object({
@@ -83,6 +80,7 @@ export type ChatSessionDTO = z.infer<typeof chatSessionResponseSchema>;
 export type DocumentDTO = z.infer<typeof documentResponseSchema>;
 export type ChapterDTO = z.infer<typeof chapterResponseSchema>;
 export type SubjectDTO = z.infer<typeof subjectResponseSchema>;
+
 
 // --- API Service Object ---
 // The functions remain the same, but now they use the updated schemas for validation.

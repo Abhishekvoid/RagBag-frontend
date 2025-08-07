@@ -1,13 +1,8 @@
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, FieldErrors } from "react-hook-form"; // Ensure FieldErrors is imported
 import { zodResolver } from "@hookform/resolvers/zod";
-
 import { useNotebookStore } from "@/lib/store/useNotebook";
-import {
-  subjectSchema,
-  SubjectInput,
-} from "@/features/notebook/notebook.schema";
-
+import { subjectSchema, SubjectInput } from "@/features/notebook/notebook.schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -35,39 +30,31 @@ export function NewSubjectModal() {
 
   const form = useForm<SubjectInput>({
     resolver: zodResolver(subjectSchema),
-    defaultValues: {
-      name: "",
-      description: "",
-    },
+    defaultValues: { name: "", description: "" },
   });
 
-  const handleManualSubmit = async () => {
-  console.log("🟣 You clicked the submit button");
- 
-  const result = await form.handleSubmit(
-    async (values: SubjectInput) => {
-      console.log("✅ Manual submit triggered!");
-      console.log("📦 Submitted values:", values);
-      
-      try {
-        await addSubject(values);
-        form.reset();
-        setIsOpen(false);
-      } catch (error) {
-        form.setError("root", {
-          message: (error as Error).message,
-        });
-      }
-    },
-    (errors) => {
-      // 🔥 This gets called when validation fails
-      console.log("❌ Validation failed");
-      console.log("🛠 Errors:", errors);
+  // This success handler is correct
+  const onSubmit = async (values: SubjectInput) => {
+    console.log("✅ Validation successful! Preparing to submit...");
+    console.log("📦 Submitted values:", values);
+    try {
+      console.log("⏳ Calling the addSubject action...");
+      await addSubject(values);
+      console.log("🎉 Subject added to store successfully!");
+      form.reset();
+      setIsOpen(false);
+    } catch (error) {
+      const errorMessage = (error as Error).message;
+      console.error("🔥 Submission Error:", errorMessage);
+      form.setError("root", { message: errorMessage });
     }
-  )();
+  };
 
-  console.log("📤 handleSubmit finished");
-};
+  // This error handler is correct
+  const onError = (errors: FieldErrors<SubjectInput>) => {
+    console.log("❌ Form validation failed!");
+    console.log("🛠 Errors:", errors);
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -77,68 +64,62 @@ export function NewSubjectModal() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Create a New Subject</DialogTitle>
-          <DialogDescription>
-            Subjects help you organize your chapters and notes. Give it a clear name.
-          </DialogDescription>
-        </DialogHeader>
-
+      <DialogContent className="sm:max-w-[425px] bg-white/10 backdrop-blur-lg border border-white/20">
         <Form {...form}>
-          <form className="space-y-4 py-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Subject Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., Quantum Physics" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          {/* ✅ CHANGED: The onSubmit handler is now connected to the form */}
+          <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-4">
+            <DialogHeader>
+              <DialogTitle>Create a New Subject</DialogTitle>
+              <DialogDescription>
+                Subjects help you organize your chapters and notes. Give it a clear name.
+              </DialogDescription>
+            </DialogHeader>
 
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea placeholder="Brief description of the subject." {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+            <div className="py-4 space-y-4">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Subject Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Quantum Physics" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description (Optional)</FormLabel>
+                    <FormControl>
+                      <Textarea placeholder="Brief description of the subject." {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {form.formState.errors.root && (
+                <p className="text-sm font-medium text-destructive">
+                  {form.formState.errors.root.message}
+                </p>
               )}
-            />
+            </div>
 
-            {form.formState.errors.root && (
-              <p className="text-sm font-medium text-destructive">
-                {form.formState.errors.root.message}
-              </p>
-            )}
+            {/* ✅ CHANGED: The DialogFooter is now INSIDE the form element */}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setIsOpen(false)}>
+                Cancel
+              </Button>
+              {/* ✅ CHANGED: Button is now type="submit" and has no onClick handler */}
+              <Button type="submit" disabled={form.formState.isSubmitting}>
+                {form.formState.isSubmitting ? "Creating..." : "Create Subject"}
+              </Button>
+            </DialogFooter>
           </form>
-
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsOpen(false)}
-            >
-              Cancel
-            </Button>
-
-            <Button
-              type="button"
-              disabled={form.formState.isSubmitting}
-              onClick={handleManualSubmit}
-            >
-              {form.formState.isSubmitting ? "Creating..." : "Create Subject"}
-            </Button>
-          </DialogFooter>
         </Form>
       </DialogContent>
     </Dialog>

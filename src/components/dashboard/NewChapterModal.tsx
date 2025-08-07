@@ -48,7 +48,7 @@ export function NewChapterModal({ isOpen, onOpenChange, defaultSubjectId }: NewC
     if (isOpen) {
       form.reset({
         name: "",
-        subject: defaultSubjectId || "",
+        subject: defaultSubjectId || null,
         order: 1,
       });
     }
@@ -64,42 +64,18 @@ export function NewChapterModal({ isOpen, onOpenChange, defaultSubjectId }: NewC
     }
   };
 
-  return (
+   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px] bg-white/10 backdrop-blur-lg border border-white/20">
         <DialogHeader>
           <DialogTitle>Create a New Chapter</DialogTitle>
           <DialogDescription>
-            Chapters live inside subjects. Select a subject and give your new chapter a name.
+            Give your new chapter a name. You can assign it to a subject now or later.
           </DialogDescription>
         </DialogHeader>
 
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="subject"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Subject</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value} required>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a subject" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {subjects.map((subject) => (
-                        <SelectItem key={subject.id} value={subject.id}>
-                          {subject.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-4">
             <FormField
               control={form.control}
               name="name"
@@ -109,6 +85,39 @@ export function NewChapterModal({ isOpen, onOpenChange, defaultSubjectId }: NewC
                   <FormControl>
                     <Input placeholder="e.g., Introduction to Kinematics" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="subject"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Subject (Optional)</FormLabel>
+                  <Select
+                    value={field.value || ""}
+                    onValueChange={(value) => {
+                      field.onChange(value === "none" ? null : value);
+                    }}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a subject" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="none">
+                        <em>No Subject</em>
+                      </SelectItem>
+                      {subjects.map((subject) => (
+                        <SelectItem key={subject.id} value={subject.id}>
+                          {subject.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
@@ -131,6 +140,7 @@ export function NewChapterModal({ isOpen, onOpenChange, defaultSubjectId }: NewC
           </form>
         </Form>
       </DialogContent>
+
     </Dialog>
   );
 }

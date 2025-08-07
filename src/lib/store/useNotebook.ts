@@ -10,7 +10,7 @@ import {
 } from "@/features/notebook/notebook.schema";
 
 // ============ types =============
-type Chapter = ChapterDTO & {
+export type Chapter = ChapterDTO & {
   chatHistory: { role: "user" | "ai"; text: string }[];
 };
 
@@ -48,7 +48,8 @@ export const useNotebookStore = create<NotebookState & NotebookActions>(
       set({ isLoading: true, error: null });
       try {
         const subjectsFromApi = await notebookApi.fetchSubjects();
-        const subjectsWithChat = subjectsFromApi.map((subject) => ({
+        const uniqueSubjects = Array.from(new Map(subjectsFromApi.map(subject => [subject.id, subject])).values());
+        const subjectsWithChat = uniqueSubjects.map((subject) => ({
           ...subject,
           chapters: subject.chapters.map((chapter) => ({
             ...chapter,
@@ -65,7 +66,6 @@ export const useNotebookStore = create<NotebookState & NotebookActions>(
       }
     },
 
-    // --- ROBUST ADD SUBJECT ACTION ---
     addSubject: async (data: SubjectInput) => {
       try {
         const response = await notebookApi.createSubject(data);
@@ -76,11 +76,11 @@ export const useNotebookStore = create<NotebookState & NotebookActions>(
           const subjectExists = state.subjects.some(
             (subject) => subject.id === newSubjectFromApi.id
           );
-          // If it exists, do nothing to prevent duplicates
+          
           if (subjectExists) {
             return {};
           }
-          // Otherwise, add the new subject
+        
           return {
             subjects: [...state.subjects, { ...newSubjectFromApi, chapters: [] }],
           };
@@ -93,8 +93,23 @@ export const useNotebookStore = create<NotebookState & NotebookActions>(
 
     updateSubject: async (id: string, data: Partial<SubjectInput>) => {
       try {
-        await notebookApi.updateSubject(id, data);
-        await get().fetchSubjects();
+        const response = await notebookApi.updateSubject(id, data);
+        const updatedSubjectFromApi = response.data;
+    
+        set((state) => ({
+          subjects: state.subjects.map((subject) => {
+           
+            if (subject.id === id) {
+              
+              const { chapters, ...restOfApiData } = updatedSubjectFromApi;
+    
+           
+              return { ...subject, ...restOfApiData };
+            }
+           
+            return subject;
+          }),
+        }));
       } catch (error) {
         console.error("Zustand Store Error - Failed to update subject:", error);
         throw new Error("Could not update the subject.");
@@ -103,8 +118,11 @@ export const useNotebookStore = create<NotebookState & NotebookActions>(
 
     deleteSubject: async (id: string) => {
       try {
+       
         await notebookApi.deleteSubject(id);
-        await get().fetchSubjects();
+        set((state) => ({
+          subjects: state.subjects.filter((subject) => subject.id !== id),
+        }));
       } catch (error) {
         console.error("Zustand Store Error - Failed to delete subject:", error);
         throw new Error("Could not delete the subject.");

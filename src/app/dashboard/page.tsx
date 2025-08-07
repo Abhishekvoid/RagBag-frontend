@@ -2,7 +2,7 @@
 
 import { Header } from "@/components/dashboard/Header";
 import { NotebookSidebar } from "@/components/dashboard/NotebookSidebar";
-import { ContentPanel } from "@/components/dashboard/ContentlPanel";
+import { ContentPanel } from "@/components/dashboard/ContentPanel";
 import { StudioPanel } from "@/components/dashboard/StudioPanel";
 
 
