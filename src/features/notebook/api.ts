@@ -28,7 +28,7 @@ export const fetchChapterDetail = (id: string) => api.get(`/chapters/${id}/`);
 
 export const fectchDocuments = () => api.get("/documents/");
 export const uploadDocument = (formData: FormData) =>
-  api.post("/documents/", formData, {
+  api.post("auth/documents/", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 export const updateDocument = (

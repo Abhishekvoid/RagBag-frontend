@@ -1,9 +1,9 @@
 "use client";
 
-import { Header } from "@/components/dashboard/Header";
-import { NotebookSidebar } from "@/components/dashboard/NotebookSidebar";
-import { ContentPanel } from "@/components/dashboard/ContentPanel";
-import { StudioPanel } from "@/components/dashboard/StudioPanel";
+import { Header } from "@/components/dashboard/Header/Header";
+import { NotebookSidebar } from "@/components/dashboard/SideBar/NotebookSidebar";
+import { ContentPanel } from "@/components/dashboard/ContentPanel/ContentPanel";
+import { StudioPanel } from "@/components/dashboard/StudioPanel/StudioPanel";
 
 
 export default function DashboardPage() {

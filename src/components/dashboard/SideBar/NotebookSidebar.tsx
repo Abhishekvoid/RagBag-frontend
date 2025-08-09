@@ -3,12 +3,12 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useNotebookStore } from "@/lib/store/useNotebook";
 import { useDebounce } from "@/hooks/useDebounce";
-import { SubjectItem } from "./SubjectItem";
-import { ChapterItem } from "./ChapterItem";
+import { SubjectItem } from "./Subject/SubjectItem";
+import { ChapterItem } from "./Chapter/ChapterItem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { NewSubjectModal } from "./NewSubjectModal";
-import { NewChapterModal } from "./NewChapterModal";
+import { NewSubjectModal } from "./Subject/NewSubjectModal";
+import { NewChapterModal } from "./Chapter/NewChapterModal";
 
 const SearchIcon = ({ className }: { className?: string }) => ( <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> );
 

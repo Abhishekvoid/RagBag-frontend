@@ -13,12 +13,12 @@ export interface Source {
 export function ContentPanel() {
   const [sources, setSources] = useState<Source[]>([]);
 
-  // State 1: No sources have been uploaded
+  
   if (sources.length === 0) {
     return (
       <section className="col-span-5 bg-card rounded-lg flex flex-col h-full items-center justify-center border border-border">
         <AddSourceView onSourceAdded={() => {
-          // This is a placeholder for your actual file upload logic.
+          
           setSources([{ id: '1', name: 'My First Document.pdf' }]);
         }} />
       </section>
