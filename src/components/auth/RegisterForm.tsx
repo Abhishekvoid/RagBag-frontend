@@ -58,7 +58,7 @@ export function RegisterForm() {
 
     // Transform data to match Django's expected field names
     const djangoData = {
-      username: data.name,
+      name: data.name,
       email: data.email,
       password1: data.password, // ✅ Correct: maps password to password1
       password2: data.password2, // ✅ Correct: uses password2

@@ -9,126 +9,134 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NewSubjectModal } from "./Subject/NewSubjectModal";
 import { NewChapterModal } from "./Chapter/NewChapterModal";
+import { getAccessToken } from "@/utils/storage";
 
-const SearchIcon = ({ className }: { className?: string }) => ( <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg> );
-
+import { SearchIcon, Spinner, CollectionIcon, SparkleIcon } from "../Icons";
 
 export const InboxIcon = ({ className }: { className?: string }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width="16" 
-    height="16" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}>
+  <svg
+    xmlns="http://www.w3.org/2000/svg"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+    className={className}
+  >
     <path d="M22 12h-6l-2 3h-4l-2-3H2" />
     <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
-  </svg>
-
-  
-);
-
-export const CollectionIcon = ({ className }: { className?: string }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    width="16" 
-    height="16" 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}>
-    <rect width="8" height="8" x="8" y="2" rx="1" ry="1" />
-    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
-  </svg>
-);
-
-// Add this icon for your "Alone Chapters" heading
-export const SparkleIcon = ({ className }: { className?: string }) => (
-    <svg 
-        xmlns="http://www.w3.org/2000/svg" 
-        width="16" 
-        height="16" 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
-        strokeWidth="2" 
-        strokeLinecap="round" 
-        strokeLinejoin="round" 
-        className={className}>
-        <path d="M12 3L9.5 8.5L4 11L9.5 13.5L12 19L14.5 13.5L20 11L14.5 8.5L12 3z" />
-        <path d="M5 3v4" />
-        <path d="M19 17v4" />
-        <path d="M3 5h4" />
-        <path d="M17 19h4" />
-    </svg>
-);
-const Spinner = () => (
-  <svg
-    className="animate-spin h-5 w-5 text-muted-foreground"
-    xmlns="http://www.w3.org/2000/svg"
-    fill="none"
-    viewBox="0 0 24 24"
-  >
-    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
   </svg>
 );
 
 export function NotebookSidebar() {
-  const { subjects, activeChapterId, setActiveChapter, fetchSubjects, isLoading, error } = useNotebookStore();
-  const [expandedSubjects, setExpandedSubjects] = useState<Record<string, boolean>>({});
+  const {
+    subjects,
+    activeChapterId,
+    setActiveChapter,
+    fetchSubjects,
+    isLoading,
+    error,
+  } = useNotebookStore();
+  const [expandedSubjects, setExpandedSubjects] = useState<
+    Record<string, boolean>
+  >({});
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
   const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
-  const [subjectForNewChapter, setSubjectForNewChapter] = useState<string | null>(null);
+  const [subjectForNewChapter, setSubjectForNewChapter] = useState<
+    string | null
+  >(null);
 
   const [isUncategorizedExpanded, setIsUncategorizedExpanded] = useState(false);
 
   const toggleSubject = (subjectId: string) => {
-    setExpandedSubjects(prev => ({ ...prev, [subjectId]: !prev[subjectId] }));
+    setExpandedSubjects((prev) => ({ ...prev, [subjectId]: !prev[subjectId] }));
   };
 
   useEffect(() => {
     fetchSubjects();
   }, []);
 
+  useEffect(() => {
+    const authToken = getAccessToken(); // Use your function to get the token
+    if (!authToken) {
+      console.log("No auth token found, WebSocket not connecting.");
+      return;
+    }
+
+    const ws = new WebSocket(
+      `ws://localhost:8000/ws/notifications/?token=${authToken}`
+    );
+
+    ws.onopen = () =>
+      console.log("✅ WebSocket connected for real-time notebook updates.");
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.message === "notebook_updated") {
+          console.log("🔄 Notebook update received! Re-fetching subjects...");
+          fetchSubjects();
+        }
+      } catch (e) {
+        console.error("Failed to parse WebSocket message:", e);
+      }
+    };
+    ws.onclose = () => console.log("WebSocket disconnected.");
+    ws.onerror = (err) => console.error("WebSocket error:", err);
+
+    // Cleanup function to close the socket when the component unmounts
+    return () => ws.close();
+  }, [fetchSubjects]);
+
   const filteredSubjects = useMemo(() => {
     if (!debouncedSearchQuery.trim()) {
-      const uniqueSubjects = Array.from(new Map(subjects.map(item => [item.id, item])).values());
+      const uniqueSubjects = Array.from(
+        new Map(subjects.map((item) => [item.id, item])).values()
+      );
       return uniqueSubjects;
     }
 
     const lowercasedQuery = debouncedSearchQuery.toLowerCase();
-    const uniqueSource = Array.from(new Map(subjects.map(item => [item.id, item])).values());
-    
-    const results = uniqueSource.map(subject => {
-        const subjectMatch = subject.name.toLowerCase().includes(lowercasedQuery);
-        const matchingChapters = subject.chapters.filter(c => c.name.toLowerCase().includes(lowercasedQuery));
-        if (subjectMatch || matchingChapters.length > 0) {
-            return { ...subject, chapters: subjectMatch ? subject.chapters : matchingChapters };
-        }
-        return null;
+    const uniqueSource = Array.from(
+      new Map(subjects.map((item) => [item.id, item])).values()
+    );
+
+    const results = uniqueSource.map((subject) => {
+      const subjectMatch = subject.name.toLowerCase().includes(lowercasedQuery);
+      const matchingChapters = subject.chapters.filter((c) =>
+        c.name.toLowerCase().includes(lowercasedQuery)
+      );
+      if (subjectMatch || matchingChapters.length > 0) {
+        return {
+          ...subject,
+          chapters: subjectMatch ? subject.chapters : matchingChapters,
+        };
+      }
+      return null;
     });
 
-    return results.filter((subject): subject is NonNullable<typeof subject> => subject !== null);
+    return results.filter(
+      (subject): subject is NonNullable<typeof subject> => subject !== null
+    );
   }, [subjects, debouncedSearchQuery]);
 
   useEffect(() => {
     if (debouncedSearchQuery.trim()) {
-      const newExpandedState = Object.fromEntries(filteredSubjects.map(s => [s.id, true]));
+      const newExpandedState = Object.fromEntries(
+        filteredSubjects.map((s) => [s.id, true])
+      );
       setExpandedSubjects(newExpandedState);
     }
   }, [debouncedSearchQuery, filteredSubjects]);
 
-  const handleAddNewChapterClick = (event: React.MouseEvent, subjectId: string) => {
+  const handleAddNewChapterClick = (
+    event: React.MouseEvent,
+    subjectId: string
+  ) => {
     event.stopPropagation();
     setSubjectForNewChapter(subjectId);
     setIsChapterModalOpen(true);
@@ -148,10 +156,13 @@ export function NotebookSidebar() {
   if (error) {
     return <aside>Error: {error}</aside>;
   }
-  
-  // ✅ FIX: Move the separation logic here, right before rendering
-  const uncategorized = filteredSubjects.find(s => s.id === 'uncategorized-chapters');
-  const regularSubjects = filteredSubjects.filter(s => s.id !== 'uncategorized-chapters');
+
+  const uncategorized = filteredSubjects.find(
+    (s) => s.id === "uncategorized-chapters"
+  );
+  const regularSubjects = filteredSubjects.filter(
+    (s) => s.id !== "uncategorized-chapters"
+  );
 
   return (
     <aside className="col-span-3 bg-card rounded-lg p-4 flex flex-col h-full overflow-y-auto border border-border">
@@ -160,7 +171,7 @@ export function NotebookSidebar() {
         <h2 className="text-xl font-bold text-card-foreground">My Notebook</h2>
         {isLoading && <Spinner />}
       </div>
-      
+
       <div className="flex gap-2 mb-4">
         <NewSubjectModal />
         <Button
@@ -189,7 +200,6 @@ export function NotebookSidebar() {
 
       {/* Main Content Area */}
       <div className="flex-grow overflow-y-auto -mr-4 pr-4">
-
         {/* ✅ CORRECTED: "Alone Chapters" Section */}
         {uncategorized && uncategorized.chapters.length > 0 && (
           <div className="px-2 pt-2 pb-1">
@@ -198,10 +208,10 @@ export function NotebookSidebar() {
               <span>Alone Chapters</span>
             </div>
             <ul className="space-y-1">
-              {(isUncategorizedExpanded 
-                ? uncategorized.chapters 
+              {(isUncategorizedExpanded
+                ? uncategorized.chapters
                 : uncategorized.chapters.slice(0, 5)
-              ).map(chapter => (
+              ).map((chapter) => (
                 <ChapterItem
                   key={chapter.id}
                   chapter={chapter}
@@ -210,15 +220,17 @@ export function NotebookSidebar() {
                 />
               ))}
             </ul>
-            
+
             {uncategorized.chapters.length > 5 && (
-              <Button 
-                variant="link" 
+              <Button
+                variant="link"
                 className="p-0 h-auto mt-2 text-sm text-muted-foreground"
-                onClick={() => setIsUncategorizedExpanded(!isUncategorizedExpanded)}
+                onClick={() =>
+                  setIsUncategorizedExpanded(!isUncategorizedExpanded)
+                }
               >
-                {isUncategorizedExpanded 
-                  ? 'Show Less' 
+                {isUncategorizedExpanded
+                  ? "Show Less"
                   : `Show ${uncategorized.chapters.length - 5} More...`}
               </Button>
             )}
@@ -246,7 +258,9 @@ export function NotebookSidebar() {
                 />
               ))
             ) : (
-              <p className="px-2 text-sm text-muted-foreground">No subjects yet.</p>
+              <p className="px-2 text-sm text-muted-foreground">
+                No subjects yet.
+              </p>
             )}
           </div>
         </div>
