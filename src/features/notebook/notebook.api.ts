@@ -1,18 +1,21 @@
 import api from "@/lib/axios";
 import { z } from "zod";
-import {
+import type {
   SubjectInput,
   ChapterInput,
   DocumentInput,
   ChatSessionInput,
   ChatMessageInput,
+  Message,
+
 } from "./notebook.schema";
+import { fetchChapterDetail } from "./api";
 
 // --- Zod Schemas for API Responses ---
 // This section is now updated to perfectly match your `serializer.py` output.
 // This is our runtime "safety net" for all incoming data from the backend.
 
-const chatMessageResponseSchema = z.object({
+export const chatMessageResponseSchema = z.object({
   id: z.uuid(),
   session: z.uuid(),
   sender: z.enum(["user", "ai"]),
@@ -24,15 +27,15 @@ const chatMessageResponseSchema = z.object({
   error: z.string().nullable(),
 });
 
-const chatSessionResponseSchema = z.object({
+export const chatSessionResponseSchema = z.object({
   id: z.uuid(),
-  user: z.string(), // Assuming user is a string UUID
+  user: z.string(),
   subject: z.uuid().nullable(),
   chapter: z.uuid().nullable(),
   title: z.string(),
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
-  context_snapshot: z.any().nullable(), // Use z.any() for now
+  context_snapshot: z.any().nullable(),
 });
 
 const documentResponseSchema = z.object({
@@ -46,9 +49,8 @@ const documentResponseSchema = z.object({
   created_at: z.string().datetime(),
   updated_at: z.string().datetime(),
 });
-
 export const chapterResponseSchema = z.object({
-  id: z.uuid(), // Note: I changed z.uuid() to z.string().uuid() to match the others
+  id: z.uuid(),
   subject: z.uuid().nullable(),
   name: z.string(),
   order: z.number(),
@@ -67,6 +69,19 @@ export const subjectResponseSchema = z.object({
   chapters: z.array(chapterResponseSchema).optional().default([]),
 });
 
+export const ragChatResponseSchema = z.object({
+  id: z.uuid(),
+  sender: z.literal("ai"),
+  text: z.string(),
+})
+
+const paginatedMessagesSchema = z.object({
+  count: z.number(),
+  next: z.url().nullable(),
+  previous: z.string().url().nullable(),
+  results: z.array(ragChatResponseSchema),
+});
+
 const subjectListResponseSchema = z.array(subjectResponseSchema);
 
 const questionsResponseSchema = z.object({
@@ -76,11 +91,21 @@ const questionsResponseSchema = z.object({
 // --- TypeScript Types inferred from Zod Schemas ---
 // These are automatically generated from the schemas above. No manual work needed.
 export type ChatMessageDTO = z.infer<typeof chatMessageResponseSchema>;
-export type ChatSessionDTO = z.infer<typeof chatSessionResponseSchema>;
-export type DocumentDTO = z.infer<typeof documentResponseSchema>;
+export type ChatSessionDTO = z.infer<typeof chatSessionResponseSchema> & {
+  messages? : Message[];
+};
+export type DocumentDTO = z.infer<typeof documentResponseSchema> & {
+  messages?:  Message[];
+  chatHistory?: {
+    nextPageUrl: string | null;
+    isLoading: boolean;
+    hasMore: boolean
+  };
+};
 export type ChapterDTO = z.infer<typeof chapterResponseSchema>;
 export type SubjectDTO = z.infer<typeof subjectResponseSchema>;
-
+export type RagChatMessageDTO = z.infer<typeof ragChatResponseSchema>;
+export type PaginatedMessages = z.infer<typeof paginatedMessagesSchema>;
 
 // --- API Service Object ---
 // The functions remain the same, but now they use the updated schemas for validation.
@@ -105,6 +130,13 @@ export const notebookApi = {
   fetchChapters: () => api.get<ChapterDTO[]>("/auth/chapters/"),
   fetchChapterDetail: (id: string) =>
     api.get<ChapterDTO>(`/auth/chapters/${id}/`),
+
+   fetchChapterMessages: async (url: string): Promise<PaginatedMessages> => {
+    const response = await api.get(url);
+    return paginatedMessagesSchema.parse(response.data);
+  },
+
+
   createChapter: (data: ChapterInput) =>
     api.post<ChapterDTO>("/auth/chapters/", data),
   deleteChapter: (id: string) => api.delete(`/auth/chapters/${id}/`),
@@ -129,6 +161,19 @@ export const notebookApi = {
     api.get<ChatSessionDTO>(`/auth/chatsessions/${id}/`),
   createChatSession: (data: ChatSessionInput) =>
     api.post<ChatSessionDTO>("/auth/chatsessions/", data),
+
+  // === RAG Chat (New) ===
+ sendRagMessage: async (
+  payload: { chapterId: string; text: string }
+): Promise<RagChatMessageDTO> => {
+  try {
+    const response = await api.post('/auth/rag-chat/', payload);
+    return ragChatResponseSchema.parse(response.data);
+  } catch (error) {
+    console.error("API Error: sendRagMessage failed", error);
+    throw error;
+  }
+},
 
   // === Chat Messages ===
   sendChatMessage: (data: ChatMessageInput) =>

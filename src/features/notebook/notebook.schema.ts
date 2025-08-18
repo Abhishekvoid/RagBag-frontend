@@ -14,6 +14,9 @@ const ALLOWED_EXTENSIONS = [
 const MAX_UPLOAD_SIZE = 50 * 1024 * 1024;
 
 
+
+
+
 export const subjectSchema = z.object({
   // id: z.uuid(),
   name: z.string().min(3, "Subject name can't be blank").trim(),
@@ -56,8 +59,17 @@ export const chatMessageSchema = z.object({
   text: z.string().min(1, "Message text cannot be empty"),
 });
 
+
+export const messageSchema = z.object({
+  id: z.string().uuid(),
+  sender: z.enum(senderEnum),
+  text: z.string().min(1),
+  created_at: z.string().optional(),
+});
+
 export type ChatMessageInput = z.infer<typeof chatMessageSchema>;
 export type ChatSessionInput = z.infer<typeof chatSessionSchema>;
 export type DocumentInput = z.infer<typeof documentSchema>;
 export type ChapterInput = z.infer<typeof chapterSchema>;
 export type SubjectInput = z.infer<typeof subjectSchema>;
+export type Message = z.infer<typeof messageSchema>;

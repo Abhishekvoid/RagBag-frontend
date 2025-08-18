@@ -1,26 +1,53 @@
+// features/notebook/notebook.store.ts
+
 import { create } from "zustand";
+import { devtools } from "zustand/middleware";
 import {
   notebookApi,
   SubjectDTO,
   ChapterDTO,
+  PaginatedResponse,
 } from "@/features/notebook/notebook.api";
 import {
   SubjectInput,
   ChapterInput,
 } from "@/features/notebook/notebook.schema";
+import { v4 as uuidv4 } from "uuid";
 
-// ============ types =============
-export type Chapter = ChapterDTO & {
-  chatHistory: { role: "user" | "ai"; text: string }[];
+// ============ TYPES =============
+
+// Raw API message shape (DTO from backend)
+export type MessageDTO = {
+  id: string;
+  text: string;
 };
 
-type Subject = Omit<SubjectDTO, "chapters"> & {
+// Internal UI message type
+export type Message = {
+  id: string;
+  sender: "user" | "ai";
+  text: string;
+  error?: boolean;
+};
+
+export type Chapter = ChapterDTO & {
+  messages: Message[];
+  pagination: {
+    nextPageUrl: string | null;
+    isLoading: boolean;
+    isLoadingMore: boolean;
+    hasMore: boolean;
+  };
+};
+
+export type Subject = SubjectDTO & {
   chapters: Chapter[];
 };
 
 type NotebookState = {
   subjects: Subject[];
   activeChapterId: string | null;
+  isAiResponding: boolean;
   isLoading: boolean;
   error: string | null;
 };
@@ -28,151 +55,302 @@ type NotebookState = {
 type NotebookActions = {
   fetchSubjects: () => Promise<void>;
   addSubject: (data: SubjectInput) => Promise<void>;
-  updateSubject: (id: string, data: Partial<SubjectInput>) => Promise<void>;
   deleteSubject: (id: string) => Promise<void>;
   addChapter: (data: ChapterInput) => Promise<void>;
   setActiveChapter: (chapterId: string | null) => void;
   getActiveChapter: () => Chapter | null;
+  sendMessage: (text: string) => Promise<void>;
+  loadChatHistory: (chapterId: string) => Promise<void>;
+  loadMoreMessages: (chapterId: string) => Promise<void>;
 };
 
 // ==== STORE ===========
-export const useNotebookStore = create<NotebookState & NotebookActions>(
-  (set, get) => ({
-    subjects: [],
-    activeChapterId: null,
-    isLoading: false,
-    error: null,
+export const useNotebookStore = create<NotebookState & NotebookActions>()(
+  devtools(
+    (set, get) => ({
+      subjects: [],
+      activeChapterId: null,
+      isAiResponding: false,
+      isLoading: false,
+      error: null,
 
-    // --- ACTIONS ---
-    fetchSubjects: async () => {
-      set({ isLoading: true, error: null });
-      try {
-        const subjectsFromApi = await notebookApi.fetchSubjects();
-        const uniqueSubjects = Array.from(new Map(subjectsFromApi.map(subject => [subject.id, subject])).values());
-        const subjectsWithChat = uniqueSubjects.map((subject) => ({
-          ...subject,
-          chapters: subject.chapters.map((chapter) => ({
-            ...chapter,
-            chatHistory: [],
-          })),
-        }));
-        set({ subjects: subjectsWithChat, isLoading: false });
-      } catch (error) {
-        console.error("Zustand Store Error - Failed to fetch subjects:", error);
-        set({
-          error: "Failed to load your notebook. Please try again.",
-          isLoading: false,
-        });
-      }
-    },
+      // --- DATA FETCHING ACTIONS ---
+      fetchSubjects: async () => {
+        set({ isLoading: true, error: null });
+        try {
+          // ✅ enforce consistent API client returning `.data`
+          const subjectsFromApi = await notebookApi.fetchSubjects();
 
-    addSubject: async (data: SubjectInput) => {
-      try {
-        const response = await notebookApi.createSubject(data);
-        const newSubjectFromApi = response.data;
-
-        set((state) => {
-          // Check if a subject with this ID already exists
-          const subjectExists = state.subjects.some(
-            (subject) => subject.id === newSubjectFromApi.id
+          const subjectsWithChatState: Subject[] = subjectsFromApi.map(
+            (subject) => ({
+              ...subject,
+              chapters: subject.chapters.map((chapter) => ({
+                ...chapter,
+                messages: [],
+                pagination: {
+                  nextPageUrl: null,
+                  isLoading: false,
+                  isLoadingMore: false,
+                  hasMore: true,
+                },
+              })),
+            })
           );
-          
-          if (subjectExists) {
-            return {};
+
+          set({ subjects: subjectsWithChatState, isLoading: false });
+        } catch (err) {
+          console.error("NotebookStore Error - fetchSubjects:", err);
+          set({
+            error: "Failed to load your notebook. Please try again.",
+            isLoading: false,
+          });
+        }
+      },
+
+      // --- CRUD ACTIONS ---
+      addSubject: async (data: SubjectInput) => {
+        try {
+          const newSubjectFromApi = await notebookApi.createSubject(data);
+          set((state) => ({
+            subjects: [
+              ...state.subjects,
+              { ...newSubjectFromApi, chapters: [] },
+            ],
+          }));
+        } catch (err) {
+          console.error("NotebookStore Error - addSubject:", err);
+          set({ error: "Failed to add subject" });
+        }
+      },
+
+      deleteSubject: async (id: string) => {
+        try {
+          await notebookApi.deleteSubject(id);
+          set((state) => ({
+            subjects: state.subjects.filter((subject) => subject.id !== id),
+          }));
+        } catch (err) {
+          console.error("NotebookStore Error - deleteSubject:", err);
+          set({ error: "Failed to delete subject" });
+        }
+      },
+
+      addChapter: async (data: ChapterInput) => {
+        try {
+          const newChapterFromApi = await notebookApi.createChapter(data);
+          set((state) => ({
+            subjects: state.subjects.map((subject) =>
+              subject.id === newChapterFromApi.subject
+                ? {
+                    ...subject,
+                    chapters: [
+                      ...subject.chapters,
+                      {
+                        ...newChapterFromApi,
+                        messages: [],
+                        pagination: {
+                          nextPageUrl: null,
+                          isLoading: false,
+                          isLoadingMore: false,
+                          hasMore: false,
+                        },
+                      },
+                    ],
+                  }
+                : subject
+            ),
+          }));
+        } catch (err) {
+          console.error("NotebookStore Error - addChapter:", err);
+          set({ error: "Failed to add chapter" });
+        }
+      },
+
+      // --- ACTIVE STATE MANAGEMENT ---
+      setActiveChapter: (chapterId) => {
+        set({ activeChapterId: chapterId });
+        if (chapterId) {
+          const chapter = get().getActiveChapter();
+          if (chapter && chapter.messages.length === 0 && chapter.pagination.hasMore) {
+            void get().loadChatHistory(chapterId);
           }
-        
-          return {
-            subjects: [...state.subjects, { ...newSubjectFromApi, chapters: [] }],
+        }
+      },
+
+      getActiveChapter: () => {
+        const state = get();
+        if (!state.activeChapterId) return null;
+        return (
+          state.subjects
+            .flatMap((s) => s.chapters)
+            .find((c) => c.id === state.activeChapterId) || null
+        );
+      },
+
+      // --- CHAT & PAGINATION ACTIONS ---
+      loadChatHistory: async (chapterId: string) => {
+        const chapterState = get().getActiveChapter();
+        if (!chapterState || chapterState.pagination.isLoading) return;
+
+        set((state) =>
+          updateChapterState(state, chapterId, {
+            pagination: { ...chapterState.pagination, isLoading: true },
+          })
+        );
+
+        try {
+          const initialUrl = `/auth/chapters/${chapterId}/messages/`;
+          const paginatedResponse: PaginatedResponse<MessageDTO> =
+            await notebookApi.fetchChapterMessages(initialUrl);
+
+          const messages: Message[] = paginatedResponse.results.map((m) => ({
+            ...m,
+            sender: "ai", // ✅ assume history is AI messages (or infer from API)
+          }));
+
+          set((state) =>
+            updateChapterState(state, chapterId, {
+              messages,
+              pagination: {
+                ...chapterState.pagination,
+                isLoading: false,
+                nextPageUrl: paginatedResponse.next,
+                hasMore: !!paginatedResponse.next,
+              },
+            })
+          );
+        } catch (err) {
+          console.error("NotebookStore Error - loadChatHistory:", err);
+          const current = get().getActiveChapter();
+          if (current) {
+            set((state) =>
+              updateChapterState(state, chapterId, {
+                pagination: { ...current.pagination, isLoading: false },
+              })
+            );
+          }
+        }
+      },
+
+      loadMoreMessages: async (chapterId: string) => {
+        const chapterState = get().getActiveChapter();
+        if (
+          !chapterState ||
+          !chapterState.pagination.nextPageUrl ||
+          chapterState.pagination.isLoadingMore
+        )
+          return;
+
+        set((state) =>
+          updateChapterState(state, chapterId, {
+            pagination: { ...chapterState.pagination, isLoadingMore: true },
+          })
+        );
+
+        try {
+          const paginatedResponse: PaginatedResponse<MessageDTO> =
+            await notebookApi.fetchChapterMessages(
+              chapterState.pagination.nextPageUrl
+            );
+
+          const newMessages: Message[] = paginatedResponse.results.map((m) => ({
+            ...m,
+            sender: "ai",
+          }));
+
+          set((state) => {
+            const currentChapter = findChapter(state, chapterId);
+            if (!currentChapter) return state;
+
+            return updateChapterState(state, chapterId, {
+              messages: [...newMessages, ...currentChapter.messages],
+              pagination: {
+                ...currentChapter.pagination,
+                isLoadingMore: false,
+                nextPageUrl: paginatedResponse.next,
+                hasMore: !!paginatedResponse.next,
+              },
+            });
+          });
+        } catch (err) {
+          console.error("NotebookStore Error - loadMoreMessages:", err);
+          const current = get().getActiveChapter();
+          if (current) {
+            set((state) =>
+              updateChapterState(state, chapterId, {
+                pagination: { ...current.pagination, isLoadingMore: false },
+              })
+            );
+          }
+        }
+      },
+
+      sendMessage: async (text: string) => {
+        const activeChapter = get().getActiveChapter();
+        if (!activeChapter) return;
+
+        const userMessage: Message = { id: uuidv4(), sender: "user", text };
+
+        set({ isAiResponding: true });
+        set((state) =>
+          updateChapterState(state, activeChapter.id, {
+            messages: [...activeChapter.messages, userMessage],
+          })
+        );
+
+        try {
+          const aiResponse: MessageDTO = await notebookApi.sendRagMessage({
+            chapterId: activeChapter.id,
+            text,
+          });
+
+          const aiMessage: Message = { ...aiResponse, sender: "ai" };
+
+          set((state) => {
+            const currentChapter = findChapter(state, activeChapter.id);
+            if (!currentChapter) return state;
+            return updateChapterState(state, activeChapter.id, {
+              messages: [...currentChapter.messages, aiMessage],
+            });
+          });
+        } catch (err) {
+          console.error("NotebookStore Error - sendMessage:", err);
+          const errorMessage: Message = {
+            id: uuidv4(),
+            sender: "ai",
+            text: "Sorry, I ran into an issue. Please try again.",
+            error: true,
           };
-        });
-      } catch (error) {
-        console.error("Zustand Store Error - Failed to create subject:", error);
-        throw new Error("Could not create the subject on the server.");
-      }
-    },
-
-    updateSubject: async (id: string, data: Partial<SubjectInput>) => {
-      try {
-        const response = await notebookApi.updateSubject(id, data);
-        const updatedSubjectFromApi = response.data;
-    
-        set((state) => ({
-          subjects: state.subjects.map((subject) => {
-           
-            if (subject.id === id) {
-              
-              const { chapters, ...restOfApiData } = updatedSubjectFromApi;
-    
-           
-              return { ...subject, ...restOfApiData };
-            }
-           
-            return subject;
-          }),
-        }));
-      } catch (error) {
-        console.error("Zustand Store Error - Failed to update subject:", error);
-        throw new Error("Could not update the subject.");
-      }
-    },
-
-    deleteSubject: async (id: string) => {
-      try {
-       
-        await notebookApi.deleteSubject(id);
-        set((state) => ({
-          subjects: state.subjects.filter((subject) => subject.id !== id),
-        }));
-      } catch (error) {
-        console.error("Zustand Store Error - Failed to delete subject:", error);
-        throw new Error("Could not delete the subject.");
-      }
-    },
-
-    // --- ROBUST ADD CHAPTER ACTION ---
-    addChapter: async (data: ChapterInput) => {
-      try {
-        const response = await notebookApi.createChapter(data);
-        const newChapterFromApi = response.data;
-        
-        set((state) => ({
-          subjects: state.subjects.map((subject) => {
-            if (subject.id === newChapterFromApi.subject) {
-              // Check if the chapter already exists in this subject
-              const chapterExists = subject.chapters.some(
-                (chapter) => chapter.id === newChapterFromApi.id
-              );
-              // If it exists, return the subject unmodified
-              if (chapterExists) {
-                return subject;
-              }
-              // Otherwise, add the new chapter
-              return {
-                ...subject,
-                chapters: [...subject.chapters, { ...newChapterFromApi, chatHistory: [] }],
-              };
-            }
-            return subject;
-          }),
-        }));
-      } catch (error) {
-        console.error("Zustand Store Error - Failed to create chapter:", error);
-        throw new Error("Could not create the chapter.");
-      }
-    },
-
-    setActiveChapter: (chapterId) => {
-      set({ activeChapterId: chapterId });
-    },
-
-    getActiveChapter: () => {
-      const state = get();
-      if (!state.activeChapterId) return null;
-      return (
-        state.subjects
-          .flatMap((s) => s.chapters)
-          .find((c) => c.id === state.activeChapterId) || null
-      );
-    },
-  })
+          set((state) => {
+            const currentChapter = findChapter(state, activeChapter.id);
+            if (!currentChapter) return state;
+            return updateChapterState(state, activeChapter.id, {
+              messages: [...currentChapter.messages, errorMessage],
+            });
+          });
+        } finally {
+          set({ isAiResponding: false });
+        }
+      },
+    }),
+    { name: "StudyWiseNotebookStore" }
+  )
 );
+
+// --- HELPERS ---
+const findChapter = (state: NotebookState, chapterId: string) =>
+  state.subjects.flatMap((s) => s.chapters).find((c) => c.id === chapterId);
+
+const updateChapterState = (
+  state: NotebookState,
+  chapterId: string,
+  updates: Partial<Chapter>
+): NotebookState => ({
+  ...state,
+  subjects: state.subjects.map((subject) => ({
+    ...subject,
+    chapters: subject.chapters.map((chapter) =>
+      chapter.id === chapterId ? { ...chapter, ...updates } : chapter
+    ),
+  })),
+});
