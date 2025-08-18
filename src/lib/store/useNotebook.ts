@@ -6,8 +6,10 @@ import {
   notebookApi,
   SubjectDTO,
   ChapterDTO,
-  PaginatedResponse,
+  RagChatMessageDTO,
+  PaginatedMessages,
 } from "@/features/notebook/notebook.api";
+
 import {
   SubjectInput,
   ChapterInput,
@@ -40,10 +42,9 @@ export type Chapter = ChapterDTO & {
   };
 };
 
-export type Subject = SubjectDTO & {
+export type Subject = Omit<SubjectDTO, 'chapters'> & {
   chapters: Chapter[];
 };
-
 type NotebookState = {
   subjects: Subject[];
   activeChapterId: string | null;
@@ -108,8 +109,9 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
       },
 
       // --- CRUD ACTIONS ---
-      addSubject: async (data: SubjectInput) => {
+       addSubject: async (data: SubjectInput) => {
         try {
+          // This now works because notebookApi.createSubject returns a clean SubjectDTO
           const newSubjectFromApi = await notebookApi.createSubject(data);
           set((state) => ({
             subjects: [
@@ -200,13 +202,13 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
 
         try {
           const initialUrl = `/auth/chapters/${chapterId}/messages/`;
-          const paginatedResponse: PaginatedResponse<MessageDTO> =
+          const paginatedResponse: PaginatedMessages =
             await notebookApi.fetchChapterMessages(initialUrl);
 
-          const messages: Message[] = paginatedResponse.results.map((m) => ({
-            ...m,
-            sender: "ai", // ✅ assume history is AI messages (or infer from API)
-          }));
+          const messages: Message[] = paginatedResponse.results.map((m: RagChatMessageDTO) => ({
+    ...m,
+    sender: "ai", 
+  }));
 
           set((state) =>
             updateChapterState(state, chapterId, {
@@ -248,15 +250,15 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
         );
 
         try {
-          const paginatedResponse: PaginatedResponse<MessageDTO> =
+          const paginatedResponse: PaginatedMessages =
             await notebookApi.fetchChapterMessages(
               chapterState.pagination.nextPageUrl
             );
 
-          const newMessages: Message[] = paginatedResponse.results.map((m) => ({
-            ...m,
-            sender: "ai",
-          }));
+          const newMessages: Message[] = paginatedResponse.results.map((m: RagChatMessageDTO) => ({
+      ...m,
+      sender: "ai",
+    }));
 
           set((state) => {
             const currentChapter = findChapter(state, chapterId);

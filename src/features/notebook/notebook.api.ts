@@ -75,7 +75,7 @@ export const ragChatResponseSchema = z.object({
   text: z.string(),
 })
 
-const paginatedMessagesSchema = z.object({
+export const paginatedMessagesSchema = z.object({
   count: z.number(),
   next: z.url().nullable(),
   previous: z.string().url().nullable(),
@@ -120,8 +120,8 @@ export const notebookApi = {
     const response = await api.get(`/auth/subjects/${id}/`);
     return subjectResponseSchema.parse(response.data);
   },
-  createSubject: (data: SubjectInput) =>
-    api.post<SubjectDTO>("/auth/subjects/", data),
+   createSubject: (data: SubjectInput) =>
+    api.post<SubjectDTO>("/auth/subjects/", data).then(res => res.data),
   updateSubject: (id: string, data: Partial<SubjectInput>) =>
     api.patch<SubjectDTO>(`/auth/subjects/${id}/`, data),
   deleteSubject: (id: string) => api.delete(`/auth/subjects/${id}/`),
@@ -137,8 +137,8 @@ export const notebookApi = {
   },
 
 
-  createChapter: (data: ChapterInput) =>
-    api.post<ChapterDTO>("/auth/chapters/", data),
+ createChapter: (data: ChapterInput) =>
+    api.post<ChapterDTO>("/auth/chapters/", data).then(res => res.data),
   deleteChapter: (id: string) => api.delete(`/auth/chapters/${id}/`),
 
   // === Documents ===
