@@ -71,14 +71,14 @@ export const subjectResponseSchema = z.object({
 
 export const ragChatResponseSchema = z.object({
   id: z.uuid(),
-  sender: z.literal("ai"),
+  sender: z.enum(["user", "ai"]),
   text: z.string(),
 })
 
 export const paginatedMessagesSchema = z.object({
   count: z.number(),
   next: z.url().nullable(),
-  previous: z.string().url().nullable(),
+  previous: z.url().nullable(),
   results: z.array(ragChatResponseSchema),
 });
 
@@ -167,7 +167,11 @@ export const notebookApi = {
   payload: { chapterId: string; text: string }
 ): Promise<RagChatMessageDTO> => {
   try {
-    const response = await api.post('/auth/rag-chat/', payload);
+    const apiPayload = {
+      chapter: payload.chapterId, // Rename the key here
+      text: payload.text,
+    };
+    const response = await api.post('/auth/rag-chat/', apiPayload);
     return ragChatResponseSchema.parse(response.data);
   } catch (error) {
     console.error("API Error: sendRagMessage failed", error);

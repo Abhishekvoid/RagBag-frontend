@@ -1,61 +1,58 @@
+// components/ContentPanel.tsx
+
 "use client";
 
 import { AddSourceView } from "./AddSourceView";
 import { ChatView } from "./ChatView";
-import { EmptyState } from "./EmptyState";
+// We no longer need EmptyState for the "Select a Chapter" view
+// import { EmptyState } from "./EmptyState";
 import { useNotebookStore } from "@/lib/store/useNotebook";
-
-const ChapterIcon = () => (
-  <svg
-    xmlns="http://www.w.org/2000/svg"
-    width="28"
-    height="28"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="1.5"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="text-muted-foreground"
-  >
-    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path>
-  </svg>
-);
+import { Spinner } from "../Icons";
 
 export function ContentPanel() {
-  // ✅ 1. Get the fetchSubjects action from the store
-  const { activeChapter, fetchSubjects } = useNotebookStore((state) => ({
-    activeChapter: state.getActiveChapter(),
-    fetchSubjects: state.fetchSubjects,
-  }));
+  const subjects = useNotebookStore((state) => state.subjects);
+  const getActiveChapter = useNotebookStore((state) => state.getActiveChapter);
+  const fetchSubjects = useNotebookStore((state) => state.fetchSubjects);
+  const isLoading = useNotebookStore((state) => state.isLoading);
 
-  // State 1: No chapter is selected.
-  if (!activeChapter) {
+  const activeChapter = getActiveChapter();
+
+  // 1. Handle the initial loading state to prevent UI flashes.
+  if (isLoading && subjects.length === 0) {
+    console.log("%c⏳ STATE: App is loading initial data...");
     return (
       <section className="col-span-5 bg-card rounded-lg flex flex-col h-full items-center justify-center border border-border">
-        <EmptyState
-          icon={<ChapterIcon />}
-          title="Select a Chapter"
-          description="Choose a chapter from the sidebar to start chatting with your documents."
-        />
+        <Spinner />
       </section>
     );
   }
 
-  // State 2: A chapter is selected, but it has no documents.
-  if (!activeChapter.documents || activeChapter.documents.length === 0) {
+ 
+  if (activeChapter) {
+
+    console.log(`%c✅ STATE: Entered Chapter -> "${activeChapter.name}"`);
+   
+    if (!activeChapter.documents || activeChapter.documents.length === 0) {
+      console.log("%c📄 ...Chapter has no documents. Ready to add a source.");
+      return (
+        <section className="col-span-5 bg-card rounded-lg flex flex-col h-full items-center justify-center border border-border">
+          <AddSourceView onSourceAdded={fetchSubjects} />
+        </section>
+      );
+    }
+
+   console.log("%c💬 ...Chapter has documents. You are ready to chat!");
     return (
-      <section className="col-span-5 bg-card rounded-lg flex flex-col h-full items-center justify-center border border-border">
-        {/* ✅ 2. Pass fetchSubjects as the onSourceAdded prop */}
-        <AddSourceView onSourceAdded={fetchSubjects} />
+      <section className="col-span-5 bg-card rounded-lg flex flex-col h-full overflow-hidden border border-border">
+        <ChatView sources={activeChapter.documents} />
       </section>
     );
   }
-
-  // State 3: A chapter is selected AND it has documents. Show the chat.
+  
+  console.log("%c🏠 STATE: No chapter selected. Displaying default Add Source view.");
   return (
-    <section className="col-span-5 bg-card rounded-lg flex flex-col h-full overflow-hidden border border-border">
-      <ChatView sources={activeChapter.documents} />
+    <section className="col-span-5 bg-card rounded-lg flex flex-col h-full items-center justify-center border border-border">
+      <AddSourceView onSourceAdded={fetchSubjects} />
     </section>
   );
 }
