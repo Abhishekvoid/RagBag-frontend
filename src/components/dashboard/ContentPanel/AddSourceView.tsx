@@ -48,6 +48,7 @@ export function AddSourceView({ onSourceAdded }: { onSourceAdded:()=> void}) {
     }
   }
   return (
+    <div>
     <EmptyState
       icon={<UploadIcon />}
       title="Add a source to get started"
@@ -66,5 +67,6 @@ export function AddSourceView({ onSourceAdded }: { onSourceAdded:()=> void}) {
         Upload a Source
       </Button>
     </EmptyState>
+    </div>
   );
 }

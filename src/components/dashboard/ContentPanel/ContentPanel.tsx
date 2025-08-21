@@ -21,7 +21,7 @@ export function ContentPanel() {
   if (isLoading && subjects.length === 0) {
     console.log("%c⏳ STATE: App is loading initial data...");
     return (
-      <section className="col-span-5 bg-card rounded-lg flex flex-col h-full items-center justify-center border border-border">
+      <section className="bg-white/10 backdrop-blur-lg border border-white/20 col-span-5 bg-card rounded-lg flex flex-col h-full items-center justify-center border border-border">
         <Spinner />
       </section>
     );
