@@ -4,15 +4,18 @@ import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import {
   notebookApi,
-  SubjectDTO,
-  ChapterDTO,
-  RagChatMessageDTO,
-  PaginatedMessages,
+
 } from "@/features/notebook/notebook.api";
 
 import {
   SubjectInput,
   ChapterInput,
+  DocumentDTO,
+
+  SubjectDTO,
+  ChapterDTO,
+  RagChatMessageDTO,
+  PaginatedMessages,
 } from "@/features/notebook/notebook.schema";
 import { v4 as uuidv4 } from "uuid";
 
@@ -23,6 +26,8 @@ export type MessageDTO = {
   id: string;
   text: string;
 };
+
+
 
 // Internal UI message type
 export type Message = {
