@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useForm, FieldErrors } from "react-hook-form"; // Ensure FieldErrors is imported
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNotebookStore } from "@/lib/store/useNotebook";
-import { subjectSchema, SubjectInput } from "@/features/notebook/notebook.schema";
+import { subjectInputSchema, SubjectInput } from "@/features/notebook/notebook.schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,7 +29,7 @@ export function NewSubjectModal() {
   const { addSubject } = useNotebookStore();
 
   const form = useForm<SubjectInput>({
-    resolver: zodResolver(subjectSchema),
+    resolver: zodResolver(subjectInputSchema),
     defaultValues: { name: "", description: "" },
   });
 

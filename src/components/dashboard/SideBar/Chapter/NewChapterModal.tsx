@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNotebookStore } from "@/lib/store/useNotebook";
-import { chapterSchema, ChapterInput } from "@/features/notebook/notebook.schema";
+import { chapterInputSchema, ChapterInput } from "@/features/notebook/notebook.schema";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -41,7 +41,7 @@ export function NewChapterModal({ isOpen, onOpenChange, defaultSubjectId }: NewC
   const { subjects, addChapter } = useNotebookStore();
 
   const form = useForm<ChapterInput>({
-    resolver: zodResolver(chapterSchema),
+    resolver: zodResolver(chapterInputSchema),
   });
 
   useEffect(() => {

@@ -2,16 +2,12 @@
 
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import {
-  notebookApi,
-
-} from "@/features/notebook/notebook.api";
+import { notebookApi } from "@/features/notebook/notebook.api";
 
 import {
   SubjectInput,
   ChapterInput,
   DocumentDTO,
-
   SubjectDTO,
   ChapterDTO,
   RagChatMessageDTO,
@@ -26,8 +22,6 @@ export type MessageDTO = {
   id: string;
   text: string;
 };
-
-
 
 // Internal UI message type
 export type Message = {
@@ -47,7 +41,7 @@ export type Chapter = ChapterDTO & {
   };
 };
 
-export type Subject = Omit<SubjectDTO, 'chapters'> & {
+export type Subject = Omit<SubjectDTO, "chapters"> & {
   chapters: Chapter[];
 };
 type NotebookState = {
@@ -114,7 +108,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
       },
 
       // --- CRUD ACTIONS ---
-       addSubject: async (data: SubjectInput) => {
+      addSubject: async (data: SubjectInput) => {
         try {
           // This now works because notebookApi.createSubject returns a clean SubjectDTO
           const newSubjectFromApi = await notebookApi.createSubject(data);
@@ -145,27 +139,41 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
       addChapter: async (data: ChapterInput) => {
         try {
           const newChapterFromApi = await notebookApi.createChapter(data);
+
+          // This is a simple, correct version of the chapter object for the store
+          const newChapterForStore = {
+            ...newChapterFromApi,
+            messages: [],
+            pagination: {
+              nextPageUrl: null,
+              isLoading: false,
+              isLoadingMore: false,
+              hasMore: false,
+            },
+          };
+
           set((state) => ({
-            subjects: state.subjects.map((subject) =>
-              subject.id === newChapterFromApi.subject
-                ? {
-                    ...subject,
-                    chapters: [
-                      ...subject.chapters,
-                      {
-                        ...newChapterFromApi,
-                        messages: [],
-                        pagination: {
-                          nextPageUrl: null,
-                          isLoading: false,
-                          isLoadingMore: false,
-                          hasMore: false,
-                        },
-                      },
-                    ],
-                  }
-                : subject
-            ),
+            subjects: state.subjects.map((subject) => {
+              // NEW: Handle chapters with an assigned subject
+              if (subject.id === newChapterForStore.subject) {
+                return {
+                  ...subject,
+                  chapters: [...subject.chapters, newChapterForStore],
+                };
+              }
+              // NEW: Handle chapters with NO assigned subject (put it in 'Uncategorized')
+              if (
+                newChapterForStore.subject === null &&
+                subject.id === "uncategorized-chapters"
+              ) {
+                return {
+                  ...subject,
+                  chapters: [...subject.chapters, newChapterForStore],
+                };
+              }
+              // Keep the subject unchanged if it doesn't match
+              return subject;
+            }),
           }));
         } catch (err) {
           console.error("NotebookStore Error - addChapter:", err);
@@ -178,7 +186,11 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
         set({ activeChapterId: chapterId });
         if (chapterId) {
           const chapter = get().getActiveChapter();
-          if (chapter && chapter.messages.length === 0 && chapter.pagination.hasMore) {
+          if (
+            chapter &&
+            chapter.messages.length === 0 &&
+            chapter.pagination.hasMore
+          ) {
             void get().loadChatHistory(chapterId);
           }
         }
@@ -210,10 +222,12 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
           const paginatedResponse: PaginatedMessages =
             await notebookApi.fetchChapterMessages(initialUrl);
 
-          const messages: Message[] = paginatedResponse.results.map((m: RagChatMessageDTO) => ({
-    ...m,
-    sender: "ai", 
-  }));
+          const messages: Message[] = paginatedResponse.results.map(
+            (m: RagChatMessageDTO) => ({
+              ...m,
+              sender: "ai",
+            })
+          );
 
           set((state) =>
             updateChapterState(state, chapterId, {
@@ -260,10 +274,12 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
               chapterState.pagination.nextPageUrl
             );
 
-          const newMessages: Message[] = paginatedResponse.results.map((m: RagChatMessageDTO) => ({
-      ...m,
-      sender: "ai",
-    }));
+          const newMessages: Message[] = paginatedResponse.results.map(
+            (m: RagChatMessageDTO) => ({
+              ...m,
+              sender: "ai",
+            })
+          );
 
           set((state) => {
             const currentChapter = findChapter(state, chapterId);
