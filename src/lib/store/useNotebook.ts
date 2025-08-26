@@ -225,7 +225,6 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
           const messages: Message[] = paginatedResponse.results.map(
             (m: RagChatMessageDTO) => ({
               ...m,
-              sender: "ai",
             })
           );
 
@@ -277,7 +276,6 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
           const newMessages: Message[] = paginatedResponse.results.map(
             (m: RagChatMessageDTO) => ({
               ...m,
-              sender: "ai",
             })
           );
 

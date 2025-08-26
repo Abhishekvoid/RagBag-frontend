@@ -69,7 +69,7 @@ export function NotebookSidebar() {
     }
 
     const ws = new WebSocket(
-      `ws://localhost:5000/ws/notifications/?token=${authToken}`
+      `ws://localhost:8000/ws/notifications/?token=${authToken}`
     );
 
     ws.onopen = () =>
