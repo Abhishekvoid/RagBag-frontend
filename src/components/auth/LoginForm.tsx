@@ -19,6 +19,8 @@ import { loginSchema, type LoginInput } from "@/features/auth/auth.schemas";
 import api from "@/lib/axios";
 import { setTokens } from "@/utils/storage";
 
+import { signIn } from "next-auth/react";
+import googleAuthIcon from "@/components/icons/googleauth.png";
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -163,6 +165,32 @@ export function LoginForm() {
             {isLoading ? "Signing in..." : "Sign In"}
           </Button>
         </form>
+
+        <div className="relative my-4">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              Or continue with
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <form action="/api/auth/signin/google" method="post">
+            <Button type="submit" variant="outline" className="w-full">
+              <img src={googleAuthIcon.src} alt="Google" className="mr-2 h-4 w-4" />
+              Google
+            </Button>
+          </form>
+          <form action="/api/auth/signin/github" method="post">
+            {/* <Button type="submit" variant="outline" className="w-full">
+              <Icons.gitHub className="mr-2 h-4 w-4" />
+              GitHub
+            </Button> */}
+          </form>
+        </div>
       </CardContent>
     </Card>
   );

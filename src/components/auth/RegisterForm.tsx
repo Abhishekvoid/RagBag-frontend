@@ -21,6 +21,8 @@ import {
 } from "@/features/auth/auth.schemas";
 import api from "@/lib/axios";
 
+import googleAuthIcon from "@/components/icons/googleauth.png";
+
 export function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string>("");
@@ -218,6 +220,33 @@ export function RegisterForm() {
             {isLoading ? "Creating account..." : "Create Account"}
           </Button>
         </form>
+
+        <div className="relative my-4">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-background px-2 text-muted-foreground">
+              Or continue with
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4">
+          <form action="/api/auth/signin/google" method="post">
+            <Button type="submit" variant="outline" className="w-full">
+              <img src={googleAuthIcon.src} alt="Google" className="mr-2 h-4 w-4" />
+              Google
+            </Button>
+          </form>
+          {/* Example for GitHub when you add it */}
+          {/* <form action="/api/auth/signin/github" method="post">
+            <Button type="submit" variant="outline" className="w-full">
+              <Icons.gitHub className="mr-2 h-4 w-4" />
+              GitHub
+            </Button>
+          </form> */}
+        </div>
       </CardContent>
     </Card>
   );

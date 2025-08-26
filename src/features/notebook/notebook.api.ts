@@ -26,6 +26,13 @@ import {
 import axios from "axios"; // Import axios for error checking
 
 export const notebookApi = {
+
+
+
+  oauthSignIn: async (payload: {email: string; name: string; provider: string})  =>{
+    const response = await api.post('/auth/oauth-signin/', payload);
+    return response.data;
+  },
   // === Subjects ===
   fetchSubjects: async () => {
     const response = await api.get("/auth/subjects/");
