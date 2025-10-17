@@ -134,6 +134,13 @@ export const paginatedMessagesSchema = z.object({
 export const questionsResponseSchema = z.object({
   questions: z.array(z.string()),
 });
+
+export const generatedQuestionSchema = z.object({
+  id: z.uuid(),
+  question_text:z.string(),
+  answer_text: z.string(),
+  created_at: z.string().datetime(),
+})
 export type QuestionsResponseDTO = z.infer<typeof questionsResponseSchema>;
 // Exporting all the TypeScript types for API responses and UI components
 export type DocumentDTO = z.infer<typeof documentResponseSchema>;
@@ -143,9 +150,12 @@ export type ChatSessionDTO = z.infer<typeof chatSessionDTOSchema>;
 export type ChatMessageDTO = z.infer<typeof chatMessageDTOSchema>;
 export type RagChatMessageDTO = z.infer<typeof ragChatResponseSchema>;
 export type PaginatedMessages = z.infer<typeof paginatedMessagesSchema>;
+export type GeneratedQuestion = z.infer<typeof generatedQuestionSchema>;
 export type Message = {
     id: string;
     sender: "user" | "ai";
     text: string;
     error?: boolean;
 };
+
+

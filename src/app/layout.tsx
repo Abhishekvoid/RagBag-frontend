@@ -1,11 +1,11 @@
-// CHANGED: This file must be a client component to use the SessionProvider
+
 "use client";
 
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./global.css";
 import { ThemeProvider } from "@/components/theme-provider";
-// NEW: Import the SessionProvider from next-auth
+
 import { SessionProvider } from "next-auth/react";
 
 const geistSans = Geist({

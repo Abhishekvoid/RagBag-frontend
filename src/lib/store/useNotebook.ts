@@ -12,6 +12,7 @@ import {
   ChapterDTO,
   RagChatMessageDTO,
   PaginatedMessages,
+  GeneratedQuestion,
 } from "@/features/notebook/notebook.schema";
 import { v4 as uuidv4 } from "uuid";
 
@@ -39,6 +40,9 @@ export type Chapter = ChapterDTO & {
     isLoadingMore: boolean;
     hasMore: boolean;
   };
+  hasHistoryLoaded: boolean;
+  questions: GeneratedQuestion[];
+  isGeneratingQuestions: boolean;
 };
 
 export type Subject = Omit<SubjectDTO, "chapters"> & {
@@ -62,6 +66,7 @@ type NotebookActions = {
   sendMessage: (text: string) => Promise<void>;
   loadChatHistory: (chapterId: string) => Promise<void>;
   loadMoreMessages: (chapterId: string) => Promise<void>;
+  generateQuestions: (chapterId: string) => Promise<void>;
 };
 
 // ==== STORE ===========
@@ -93,6 +98,9 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
                   isLoadingMore: false,
                   hasMore: true,
                 },
+                hasHistoryLoaded: false,
+                questions: [],
+                isGeneratingQuestions: false,
               })),
             })
           );
@@ -135,12 +143,38 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
           set({ error: "Failed to delete subject" });
         }
       },
+      generateQuestions: async (chapterId: string) => {
+      
+        set((state) =>
+          updateChapterState(state, chapterId, {
+            isGeneratingQuestions: true,
+          })
+        );
 
+        try {
+          const newQuestions = await notebookApi.generateQuestions(chapterId);
+
+          set((state) =>
+            updateChapterState(state, chapterId, {
+              questions: newQuestions,
+              isGeneratingQuestions: false,
+            })
+          );
+        } catch (error) {
+          console.error("Failed to generate questions:", error);
+          // 4. On error, just turn off the loading state
+          set((state) =>
+            updateChapterState(state, chapterId, {
+              isGeneratingQuestions: false,
+            })
+          );
+        }
+      },
       addChapter: async (data: ChapterInput) => {
         try {
           const newChapterFromApi = await notebookApi.createChapter(data);
 
-          // This is a simple, correct version of the chapter object for the store
+        
           const newChapterForStore = {
             ...newChapterFromApi,
             messages: [],
@@ -150,6 +184,9 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
               isLoadingMore: false,
               hasMore: false,
             },
+          hasHistoryLoaded: true, 
+          questions: [], 
+          isGeneratingQuestions: false, 
           };
 
           set((state) => ({
