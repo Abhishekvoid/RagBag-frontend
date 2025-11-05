@@ -13,8 +13,14 @@ import {
   RagChatMessageDTO,
   PaginatedMessages,
   GeneratedQuestion,
+  FlashCard,
+  FlashCardInput,
+  chapterResponseSchema,
 } from "@/features/notebook/notebook.schema";
 import { v4 as uuidv4 } from "uuid";
+import { promises } from "dns";
+import { createGzip } from "zlib";
+import { error } from "console";
 
 // ============ TYPES =============
 
@@ -43,6 +49,9 @@ export type Chapter = ChapterDTO & {
   hasHistoryLoaded: boolean;
   questions: GeneratedQuestion[];
   isGeneratingQuestions: boolean;
+  flashcards: FlashCard[];
+  isGeneratingFlashCard: boolean;
+  flashcardError: string | null;
 };
 
 export type Subject = Omit<SubjectDTO, "chapters"> & {
@@ -54,6 +63,8 @@ type NotebookState = {
   isAiResponding: boolean;
   isLoading: boolean;
   error: string | null;
+  currentStudioView: 'controls' | 'questions' | 'flashcards';
+
 };
 
 type NotebookActions = {
@@ -67,6 +78,9 @@ type NotebookActions = {
   loadChatHistory: (chapterId: string) => Promise<void>;
   loadMoreMessages: (chapterId: string) => Promise<void>;
   generateQuestions: (chapterId: string) => Promise<void>;
+  fetchFlashCards: (chapterId: string) => Promise<void>;
+  createFlashCards: (chapterId: string, data: FlashCardInput) => Promise<void>;
+  setStudioView: (view: 'controls' | 'questions' | 'flashcards' ) => void;
 };
 
 // ==== STORE ===========
@@ -78,12 +92,13 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
       isAiResponding: false,
       isLoading: false,
       error: null,
+      currentStudioView: 'controls',
 
       // --- DATA FETCHING ACTIONS ---
       fetchSubjects: async () => {
         set({ isLoading: true, error: null });
         try {
-          // ✅ enforce consistent API client returning `.data`
+          // enforce consistent API client returning .data
           const subjectsFromApi = await notebookApi.fetchSubjects();
 
           const subjectsWithChatState: Subject[] = subjectsFromApi.map(
@@ -101,6 +116,9 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
                 hasHistoryLoaded: false,
                 questions: [],
                 isGeneratingQuestions: false,
+                flashcards: [],
+                isGeneratingFlashCard: false,
+                flashcardError: null,
               })),
             })
           );
@@ -118,7 +136,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
       // --- CRUD ACTIONS ---
       addSubject: async (data: SubjectInput) => {
         try {
-          // This now works because notebookApi.createSubject returns a clean SubjectDTO
+          
           const newSubjectFromApi = await notebookApi.createSubject(data);
           set((state) => ({
             subjects: [
@@ -144,7 +162,6 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
         }
       },
       generateQuestions: async (chapterId: string) => {
-      
         set((state) =>
           updateChapterState(state, chapterId, {
             isGeneratingQuestions: true,
@@ -174,7 +191,6 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
         try {
           const newChapterFromApi = await notebookApi.createChapter(data);
 
-        
           const newChapterForStore = {
             ...newChapterFromApi,
             messages: [],
@@ -184,21 +200,24 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
               isLoadingMore: false,
               hasMore: false,
             },
-          hasHistoryLoaded: true, 
-          questions: [], 
-          isGeneratingQuestions: false, 
+            hasHistoryLoaded: true,
+            questions: [],
+            isGeneratingQuestions: false,
+            flashcards: [],
+            isGeneratingFlashCard: false,
+            flashcardError: null,
           };
 
           set((state) => ({
             subjects: state.subjects.map((subject) => {
-              // NEW: Handle chapters with an assigned subject
+              // Handle chapters with an assigned subject
               if (subject.id === newChapterForStore.subject) {
                 return {
                   ...subject,
                   chapters: [...subject.chapters, newChapterForStore],
                 };
               }
-              // NEW: Handle chapters with NO assigned subject (put it in 'Uncategorized')
+              // Handle chapters with NO assigned subject (put it in 'Uncategorized')
               if (
                 newChapterForStore.subject === null &&
                 subject.id === "uncategorized-chapters"
@@ -208,7 +227,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
                   chapters: [...subject.chapters, newChapterForStore],
                 };
               }
-              // Keep the subject unchanged if it doesn't match
+              
               return subject;
             }),
           }));
@@ -390,9 +409,84 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
           set({ isAiResponding: false });
         }
       },
-    }),
-    { name: "StudyWiseNotebookStore" }
+
+      fetchFlashCards: async (chapterId: string) => {
+      set((state)=> 
+        updateChapterState(state, chapterId, {  
+          isGeneratingFlashCard: true,
+          flashcardError: null,
+        })
+      );
+
+      try {
+        const newFlashCard= await notebookApi.fetchFlashCard(chapterId);
+
+        set((state) =>
+          updateChapterState (state, chapterId, {
+            flashcards: newFlashCard,
+            isGeneratingFlashCard: false,
+          } )
+        )
+      } catch (error) {
+        console.error("failed to create a FlashCard:", error);
+  
+      }
+    
+    },
+
+    createFlashCards : async(chapterId: string, data: FlashCardInput) => {
+      set((state) =>
+        updateChapterState(state, chapterId, {
+          isGeneratingFlashCard: true,
+          flashcardError: null,
+         
+        })
+      )
+
+      try {
+
+        const newFlashCard = await notebookApi.createFlashCard(chapterId, data);
+
+        set((state) => {
+
+          const currentChapter = findChapter(state, chapterId);
+          if(!currentChapter){
+            console.error("Chapter not found for creating flashcard:", chapterId);
+            return state;
+          }
+
+          const updatedFlashCard = [  ...currentChapter.flashcards, newFlashCard];
+
+          return updateChapterState(state, chapterId, {
+            flashcards: updatedFlashCard,
+            isGeneratingFlashCard: false,
+          })
+        })
+      } catch (error) {
+        console.error("failed creating flashcard", error);
+
+        set((state) => 
+          updateChapterState(state, chapterId, {
+            isGeneratingFlashCard: false,
+            flashcardError: "Failed to create a flashcard",
+          }
+
+          ) 
+        )
+        
+      }
+    },
+
+    setStudioView: (view) => {
+      set({ currentStudioView: view});
+    }
+    
+    }), 
+    { name: "StudyWiseNotebookStore" },
+
+    
   )
+  
 );
 
 // --- HELPERS ---

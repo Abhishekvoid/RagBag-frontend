@@ -24,6 +24,11 @@ import {
   questionsResponseSchema,
   generatedQuestionSchema,
   GeneratedQuestion,
+  flashCardSchema, 
+  FlashCard,
+  FlashCardInput,
+  chapterInputSchema,
+  flashCardInputSchema,
 } from "./notebook.schema";
 import axios from "axios"; 
 
@@ -100,7 +105,6 @@ export const notebookApi = {
       return ragChatResponseSchema.parse(response.data);
     } catch (error) {
       console.error("API Error: sendRagMessage failed", error);
-      // --- NEW: Specific error handling for the 409 Conflict status code ---
       if (axios.isAxiosError(error) && error.response?.status === 409) {
        
         const errorMessage =
@@ -128,4 +132,31 @@ export const notebookApi = {
       throw error;
     }
   },
+
+  fetchFlashCard: async ( chapterId: string) : Promise<FlashCard[]> =>{
+    try {
+      const response = await api.get(`/auth/chapters/${chapterId}/flashcard/`);
+      return z.array(flashCardSchema).parse(response.data)
+    } catch (error) {
+      console.error("Errror Flashcrad can't fetch");
+      throw error;
+    } 
+    
+  },
+
+  createFlashCard : async (chapterId: string, data:FlashCardInput): Promise<FlashCard> => {
+  try {
+    const validatedInput =  flashCardInputSchema.parse(data);
+
+    const response = await api.post(`/auth/chapters/${chapterId}/flashcard/`);
+    
+    const newFlashCard = flashCardSchema.parse(response.data);
+
+    return newFlashCard;
+  } catch (error) {
+    console.error("Error during flashcard creation:", error);
+        throw error;
+  }
+}
 };
+

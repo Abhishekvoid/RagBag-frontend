@@ -141,8 +141,20 @@ export const generatedQuestionSchema = z.object({
   answer_text: z.string(),
   created_at: z.string().datetime(),
 })
+
+export const flashCardSchema =  z.object({
+  id:z.uuid(),
+  chapter: z.uuid().nullable(),
+  flashcard_front: z.string(),
+  flashcard_back: z.string(),
+  created_at: z.string().datetime()
+})
+
+export const flashCardInputSchema = z.object({
+  flashcard_front: z.string(),
+  flashcard_back:z.string(),
+})
 export type QuestionsResponseDTO = z.infer<typeof questionsResponseSchema>;
-// Exporting all the TypeScript types for API responses and UI components
 export type DocumentDTO = z.infer<typeof documentResponseSchema>;
 export type ChapterDTO = z.infer<typeof chapterResponseSchema>;
 export type SubjectDTO = z.infer<typeof subjectResponseSchema>;
@@ -158,4 +170,5 @@ export type Message = {
     error?: boolean;
 };
 
-
+export type FlashCard = z.infer<typeof flashCardSchema>;
+export type FlashCardInput = z.infer<typeof flashCardInputSchema>;
