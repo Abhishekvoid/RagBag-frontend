@@ -18,19 +18,16 @@ import {
   PaginatedMessages,
   subjectListResponseSchema,
   subjectResponseSchema,
-  chapterResponseSchema,
   paginatedMessagesSchema,
   ragChatResponseSchema,
-  questionsResponseSchema,
   generatedQuestionSchema,
   GeneratedQuestion,
-  flashCardSchema, 
+  flashCardSchema,
   FlashCard,
-  FlashCardInput,
-  chapterInputSchema,
-  flashCardInputSchema,
+  FlashCardUpdate,
+  flashCardUpdateSchema,
 } from "./notebook.schema";
-import axios from "axios"; 
+import axios from "axios";
 
 export const notebookApi = {
   oauthSignIn: async (payload: {
@@ -106,7 +103,6 @@ export const notebookApi = {
     } catch (error) {
       console.error("API Error: sendRagMessage failed", error);
       if (axios.isAxiosError(error) && error.response?.status === 409) {
-       
         const errorMessage =
           error.response.data?.error || "Document not ready for chat.";
         throw new Error(errorMessage);
@@ -133,30 +129,30 @@ export const notebookApi = {
     }
   },
 
-  fetchFlashCard: async ( chapterId: string) : Promise<FlashCard[]> =>{
+  
+  generateFlashCards: async (chapterId: string): Promise<FlashCard[]> => {
     try {
-      const response = await api.get(`/auth/chapters/${chapterId}/flashcard/`);
-      return z.array(flashCardSchema).parse(response.data)
+      const response = await api.post(`/auth/chapters/${chapterId}/generate-flashcards/`);
+      return z.array(flashCardSchema).parse(response.data);
     } catch (error) {
-      console.error("Errror Flashcrad can't fetch");
+      console.error("API Error: generateFlashcards failed", error);
       throw error;
-    } 
-    
+    }
   },
 
-  createFlashCard : async (chapterId: string, data:FlashCardInput): Promise<FlashCard> => {
-  try {
-    const validatedInput =  flashCardInputSchema.parse(data);
 
-    const response = await api.post(`/auth/chapters/${chapterId}/flashcard/`);
-    
-    const newFlashCard = flashCardSchema.parse(response.data);
+  fetchFlashCards: async (chapterId: string) => {
+    const response = await api.get(`/auth/chapters/${chapterId}/flashcards/`)
+    return z.array(flashCardSchema).parse(response.data)
+  },
+  
+  updatedFlashCard : async (id: string, data: z.infer<typeof flashCardUpdateSchema>) => {
+    const response = await api.patch(`/auth/flashcards/${id}/`, data)
+    return flashCardSchema.parse(response.data)
+  },
 
-    return newFlashCard;
-  } catch (error) {
-    console.error("Error during flashcard creation:", error);
-        throw error;
-  }
-}
+  deleteFlashCard: async (id: string) => {
+    await api.delete(`/auth/flashcards/${id}/`);
+  },
+
 };
-

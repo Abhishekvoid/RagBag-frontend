@@ -14,13 +14,13 @@ import {
   PaginatedMessages,
   GeneratedQuestion,
   FlashCard,
-  FlashCardInput,
+  FlashCardUpdate,
   chapterResponseSchema,
 } from "@/features/notebook/notebook.schema";
 import { v4 as uuidv4 } from "uuid";
 import { promises } from "dns";
-import { createGzip } from "zlib";
-import { error } from "console";
+import { da } from "zod/v4/locales";
+import { warn } from "console";
 
 // ============ TYPES =============
 
@@ -63,8 +63,7 @@ type NotebookState = {
   isAiResponding: boolean;
   isLoading: boolean;
   error: string | null;
-  currentStudioView: 'controls' | 'questions' | 'flashcards';
-
+  currentStudioView: "controls" | "questions" | "flashcards";
 };
 
 type NotebookActions = {
@@ -78,9 +77,11 @@ type NotebookActions = {
   loadChatHistory: (chapterId: string) => Promise<void>;
   loadMoreMessages: (chapterId: string) => Promise<void>;
   generateQuestions: (chapterId: string) => Promise<void>;
+  generateFlashCards: (chapterId: string) => Promise<void>;
   fetchFlashCards: (chapterId: string) => Promise<void>;
-  createFlashCards: (chapterId: string, data: FlashCardInput) => Promise<void>;
-  setStudioView: (view: 'controls' | 'questions' | 'flashcards' ) => void;
+  updateFlashCards: (flashCardId: string, data: FlashCardUpdate) => void;
+  deleteFlashCards: (flashcardId: string) => void;
+  setStudioView: (view: "controls" | "questions" | "flashcards") => void;
 };
 
 // ==== STORE ===========
@@ -92,7 +93,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
       isAiResponding: false,
       isLoading: false,
       error: null,
-      currentStudioView: 'controls',
+      currentStudioView: "controls",
 
       // --- DATA FETCHING ACTIONS ---
       fetchSubjects: async () => {
@@ -136,7 +137,6 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
       // --- CRUD ACTIONS ---
       addSubject: async (data: SubjectInput) => {
         try {
-          
           const newSubjectFromApi = await notebookApi.createSubject(data);
           set((state) => ({
             subjects: [
@@ -227,7 +227,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
                   chapters: [...subject.chapters, newChapterForStore],
                 };
               }
-              
+
               return subject;
             }),
           }));
@@ -410,83 +410,149 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
         }
       },
 
-      fetchFlashCards: async (chapterId: string) => {
-      set((state)=> 
-        updateChapterState(state, chapterId, {  
-          isGeneratingFlashCard: true,
-          flashcardError: null,
-        })
-      );
-
-      try {
-        const newFlashCard= await notebookApi.fetchFlashCard(chapterId);
-
+      generateFlashCards: async (chapterId: string) => {
         set((state) =>
-          updateChapterState (state, chapterId, {
-            flashcards: newFlashCard,
-            isGeneratingFlashCard: false,
-          } )
-        )
-      } catch (error) {
-        console.error("failed to create a FlashCard:", error);
-  
-      }
-    
-    },
-
-    createFlashCards : async(chapterId: string, data: FlashCardInput) => {
-      set((state) =>
-        updateChapterState(state, chapterId, {
-          isGeneratingFlashCard: true,
-          flashcardError: null,
-         
-        })
-      )
-
-      try {
-
-        const newFlashCard = await notebookApi.createFlashCard(chapterId, data);
-
-        set((state) => {
-
-          const currentChapter = findChapter(state, chapterId);
-          if(!currentChapter){
-            console.error("Chapter not found for creating flashcard:", chapterId);
-            return state;
-          }
-
-          const updatedFlashCard = [  ...currentChapter.flashcards, newFlashCard];
-
-          return updateChapterState(state, chapterId, {
-            flashcards: updatedFlashCard,
-            isGeneratingFlashCard: false,
-          })
-        })
-      } catch (error) {
-        console.error("failed creating flashcard", error);
-
-        set((state) => 
           updateChapterState(state, chapterId, {
-            isGeneratingFlashCard: false,
-            flashcardError: "Failed to create a flashcard",
-          }
+            isGeneratingFlashCard: true,
+            flashcardError: null,
+          })
+        );
 
-          ) 
-        )
-        
-      }
-    },
+        try {
+          const newFlashCard = await notebookApi.generateFlashCards(chapterId);
 
-    setStudioView: (view) => {
-      set({ currentStudioView: view});
-    }
-    
-    }), 
-    { name: "StudyWiseNotebookStore" },
+          set((state) =>
+            updateChapterState(state, chapterId, {
+              flashcards: newFlashCard,
+              isGeneratingFlashCard: false,
+            })
+          );
+        } catch (error) {
+          console.error("failed generate FlashCards:", error);
 
-    
+          const message =
+            error instanceof Error
+              ? error.message
+              : "failed to generate Flashcards";
+          set((state) =>
+            updateChapterState(state, chapterId, {
+              isGeneratingFlashCard: false,
+              flashcardError: message,
+            })
+          );
+        }
+      },
+
+      fetchFlashCards: async (chapterId: string) => {
+        set((state) =>
+          updateChapterState(state, chapterId, {
+            flashcardError: null,
+          })
+        );
+
+        try {
+          const fetchFlashCards = await notebookApi.fetchFlashCards(chapterId);
+          set((state) =>
+            updateChapterState(state, chapterId, {
+              flashcards: fetchFlashCards,
+            })
+          );
+        } catch (error) {
+          console.error("failed to fetchFlashacrds");
+
+          const message =
+            error instanceof Error
+              ? error.message
+              : "failed to generate Flashcards";
+          set((state) =>
+            updateChapterState(state, chapterId, {
+              flashcardError: message,
+            })
+          );
+        }
+      },
+
+      updateFlashCard: async (flashcardId: string, data: FlashCardUpdate) => {
+        try {
+          const updateFlashCard = await notebookApi.updatedFlashCard(
+            flashcardId,
+            data
+          );
+
+          set((state) => {
+            const activeChapterId = get().activeChapterId;
+
+            const currentChapter = state.subjects
+              .flatMap((subject) => subject.chapters)
+              .find((chapter) => chapter.id === activeChapterId);
+
+            if (!currentChapter) {
+              console.warn(
+                "Active chapter not found or flashcard not associated with active chapter:",
+                activeChapterId,
+                flashcardId
+              );
+              return state;
+            }
+
+            if (!currentChapter.flashcards) {
+              console.warn("current chapter dont have flashcard to update");
+              return state;
+            }
+
+            const updateFlashCards = currentChapter.flashcards.map((card) =>
+              card.id === flashcardId ? updateFlashCard : card
+            );
+
+            return updateChapterState(state, currentChapter.id, {
+              flashcards: updateFlashCards,
+            });
+          });
+        } catch (error) {
+          console.error("Failed to update the flashcard status:", error);
+          throw error;
+        }
+      },
+
+      deleteFlashcards: async (flashcardId: string) => {
+        const activeChapterId = get().activeChapterId;
+        try {
+          await notebookApi.deleteFlashCard(flashcardId);
+
+          set((state) => {
+            const currentChapter = state.subjects
+              .flatMap((subject) => subject.chapters)
+              .find((chapter) => chapter.id === activeChapterId);
+
+            if (!currentChapter) {
+              console.warn(
+                "Actice chapter not found or flashcards not associated with active chapter:",
+                activeChapterId,
+                flashcardId
+              );
+              return state;
+            }
+
+            const updateFlashCards = currentChapter.flashcards.filter(
+              (card) => card.id !== flashcardId
+            );
+
+            return updateChapterState(state, currentChapter.id, {
+              flashcards: updateFlashCards,
+            });
+          });
+        } catch (error) {
+          console.error("Failed to delete flashcard:", error);
+          throw error;
+        }
+      },
+
+      setStudioView: (view) => {
+        set({ currentStudioView: view });
+      },
+    }),
+    { name: "StudyWiseNotebookStore" }
   )
-  
 );
 
 // --- HELPERS ---

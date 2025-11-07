@@ -145,14 +145,16 @@ export const generatedQuestionSchema = z.object({
 export const flashCardSchema =  z.object({
   id:z.uuid(),
   chapter: z.uuid().nullable(),
-  flashcard_front: z.string(),
-  flashcard_back: z.string(),
+  flashcard_front: z.string().min(1, "Front cannot be empty"),
+  flashcard_back: z.string().min(1, "Back cannot be empty"),
+  known: z.boolean(),
+  need_review: z.boolean(),
   created_at: z.string().datetime()
 })
 
-export const flashCardInputSchema = z.object({
-  flashcard_front: z.string(),
-  flashcard_back:z.string(),
+export const flashCardUpdateSchema = z.object({
+  known: z.boolean().optional(),
+  need_review: z.boolean().optional(),
 })
 export type QuestionsResponseDTO = z.infer<typeof questionsResponseSchema>;
 export type DocumentDTO = z.infer<typeof documentResponseSchema>;
@@ -171,4 +173,4 @@ export type Message = {
 };
 
 export type FlashCard = z.infer<typeof flashCardSchema>;
-export type FlashCardInput = z.infer<typeof flashCardInputSchema>;
+export type FlashCardUpdate = z.infer<typeof flashCardUpdateSchema>;
