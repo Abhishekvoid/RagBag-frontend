@@ -18,9 +18,6 @@ import {
   chapterResponseSchema,
 } from "@/features/notebook/notebook.schema";
 import { v4 as uuidv4 } from "uuid";
-import { promises } from "dns";
-import { da } from "zod/v4/locales";
-import { warn } from "console";
 
 // ============ TYPES =============
 
@@ -472,7 +469,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
         }
       },
 
-      updateFlashCard: async (flashcardId: string, data: FlashCardUpdate) => {
+      updateFlashCards: async (flashcardId: string, data: FlashCardUpdate) => {
         try {
           const updateFlashCard = await notebookApi.updatedFlashCard(
             flashcardId,
