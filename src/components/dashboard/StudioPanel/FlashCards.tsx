@@ -4,8 +4,8 @@
 import React, { useState, useEffect } from "react";
 import { useNotebookStore } from "@/lib/store/useNotebook";
 import { Button } from "@/components/ui/button";
-import { FlashCard } from "@/features/notebook/notebook.schema"; // Correct import for FlashCard type
-import { ArrowLeft, ArrowRight } from "lucide-react"; // Import some icons for buttons
+import { FlashCard } from "@/features/notebook/notebook.schema"; 
+import { ArrowLeft, ArrowRight } from "lucide-react"; 
 import { Loader2 } from "lucide-react";
 
 interface FlashcardViewerProps {

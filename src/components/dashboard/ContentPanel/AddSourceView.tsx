@@ -40,7 +40,9 @@ export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
     const formData = new FormData();
     formData.append("file", file);
     
-
+    if (chapter?.id) {
+    formData.append("chapter", chapter.id);
+  }
     try {
       await notebookApi.uploadDocument(formData);
       onSourceAdded();
