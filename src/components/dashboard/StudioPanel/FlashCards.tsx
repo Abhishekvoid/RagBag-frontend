@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { FlashCard } from "@/features/notebook/notebook.schema"; 
 import { ArrowLeft, ArrowRight } from "lucide-react"; 
 import { Loader2 } from "lucide-react";
+import { FlashcardSkeleton } from "./FlashcardSkeleton";
 
 interface FlashcardViewerProps {
   chapterId: string;
@@ -24,6 +25,8 @@ export function FlashcardViewer({
   const updateFlashCards = useNotebookStore((state) => state.updateFlashCards);
   const setStudioView = useNotebookStore((state) => state.setStudioView);
 
+
+  const isFetching = useNotebookStore((state) => state.generateFlashCards)
   // --- Reset viewer state if flashcards prop changes (e.g., new generation) ---
   useEffect(() => {
     setCurrentCardIndex(0);
@@ -76,68 +79,53 @@ export function FlashcardViewer({
   const totalFlashcards = flashcards.length;
 
   // Handle empty state (no flashcards generated or available)
-  if (!currentFlashcard && totalFlashcards === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full p-4 text-center">
-        <p className="text-lg mb-4 text-muted-foreground">
-          No flashcards available in this chapter.
-        </p>
-        <Button onClick={() => setStudioView("controls")} className="mt-4">
-          Generate Flashcards
-        </Button>
-      </div>
-    );
-  }
-
-  // Handle case where currentFlashcard might be null (e.g., during rapid changes)
   if (!currentFlashcard) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full p-4 text-center">
-        <p className="text-lg mb-4 text-muted-foreground">
-          Loading flashcard...
-        </p>
-        <Loader2 className="h-8 w-8 animate-spin text-primary" /> {/* Assuming you have Loader2 imported */}
-      </div>
-    );
+    return <FlashcardSkeleton />;
   }
-
 
   return (
-    <div className="flex flex-col items-center justify-center h-full p-4">
-      {/* Back to Studio button, positioned absolutely */}
+    <div className="flex flex-col items-center justify-center h-full p-4 relative">
       <Button
+        variant="ghost"
         onClick={() => setStudioView("controls")}
-        className="absolute top-4 left-4"
+        className="absolute top-4 left-4 gap-2"
       >
-        ← Back to Studio
+        <ArrowLeft className="w-4 h-4" /> Back
       </Button>
 
-      {/* --- Flashcard Display Area --- */}
+      {/* Card Face */}
       <div
-        className={`relative w-full max-w-md h-64 bg-secondary rounded-lg shadow-lg cursor-pointer flex items-center justify-center text-center p-6
-                    transition-transform duration-500 ease-in-out transform
-                    ${isFlipped ? "rotateY-180" : ""}`}
+        className="perspective-1000 w-full max-w-md h-64 cursor-pointer group"
         onClick={handleFlip}
-        
-        tabIndex={0}
-        onKeyDown={(e) => {
-          if (e.key === ' ' || e.key === 'Enter') {
-            e.preventDefault(); 
-            handleFlip();
-          }
-        }}
       >
-       
-        <div className={`text-2xl font-bold text-secondary-foreground absolute transition-opacity duration-200 ${isFlipped ? 'opacity-0' : 'opacity-100'}`}>
-            {currentFlashcard.flashcard_front}
-        </div>
-        <div className={`text-xl text-muted-foreground absolute transition-opacity duration-200 ${isFlipped ? 'opacity-100' : 'opacity-0'}`}>
-            {currentFlashcard.flashcard_back}
+        <div 
+          className={`relative w-full h-full transition-all duration-500 preserve-3d shadow-md rounded-xl border border-border bg-card ${isFlipped ? "rotate-y-180" : ""}`}
+          style={{ transformStyle: 'preserve-3d', transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}
+        >
+          {/* Front */}
+          <div className="absolute inset-0 backface-hidden flex items-center justify-center p-6 text-center">
+            <h3 className="text-xl font-semibold leading-relaxed select-none">
+              {currentFlashcard.flashcard_front}
+            </h3>
+            <p className="absolute bottom-4 text-xs text-muted-foreground uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+              Tap to reveal
+            </p>
+          </div>
+
+          {/* Back */}
+          <div 
+            className="absolute inset-0 backface-hidden flex items-center justify-center p-6 text-center bg-secondary/10 rotate-y-180"
+            style={{ transform: 'rotateY(180deg)', backfaceVisibility: 'hidden' }}
+          >
+            <p className="text-lg text-muted-foreground leading-relaxed select-none">
+              {currentFlashcard.flashcard_back}
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* --- Navigation Buttons --- */}
-      <div className="flex space-x-4 mt-6">
+      {/* Navigation */}
+      <div className="flex items-center gap-4 mt-8">
         <Button
           onClick={handlePrev}
           disabled={currentCardIndex === 0}
@@ -146,6 +134,9 @@ export function FlashcardViewer({
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
+        <span className="text-sm font-medium text-muted-foreground tabular-nums">
+          {currentCardIndex + 1} / {totalFlashcards}
+        </span>
         <Button
           onClick={handleNext}
           disabled={currentCardIndex === totalFlashcards - 1}
@@ -156,39 +147,22 @@ export function FlashcardViewer({
         </Button>
       </div>
 
-      {/* --- Progress Indicator --- */}
-      <p className="mt-4 text-muted-foreground">
-        Card {currentCardIndex + 1} of {totalFlashcards}
-      </p>
-
-      {/* --- "Known" / "Need Review" Buttons --- */}
-      <div className="flex space-x-4 mt-6">
+      {/* Action Buttons */}
+      <div className="flex gap-4 mt-6">
+        <Button
+          onClick={handleMarkReview}
+          variant="outline" 
+          className="border-yellow-500/20 text-yellow-600 hover:bg-yellow-500/10 hover:text-yellow-700 dark:text-yellow-400 dark:hover:text-yellow-300"
+        >
+          Needs Review
+        </Button>
         <Button
           onClick={handleMarkKnown}
-          variant="default" // Using default variant for base styling
-          className="bg-green-600 hover:bg-green-700 text-white" // Tailwind for success color
+          className="bg-green-600 hover:bg-green-700 text-white"
         >
           I Know This
         </Button>
-
-        <Button
-          onClick={handleMarkReview}
-          variant="destructive" // Using destructive variant (often red) for contrast
-          className="bg-yellow-600 hover:bg-yellow-700 text-white" // Tailwind for warning color (changed to white text for better contrast on yellow)
-        >
-          Need Review
-        </Button>
       </div>
-
-      {/* --- Current Flashcard Status Display (for debugging/info) --- */}
-      <p className="mt-2 text-sm text-muted-foreground">
-        Status:{" "}
-        {currentFlashcard.known
-          ? "Known"
-          : currentFlashcard.need_review
-          ? "Needs Review"
-          : "New"}
-      </p>
     </div>
   );
 }

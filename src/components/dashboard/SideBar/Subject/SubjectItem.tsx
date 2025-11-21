@@ -35,8 +35,8 @@ const PlusIcon = ({ className }: { className?: string }) => (
   </svg>
 );
 
-// ==== CHAPTER ITEM ====
-
+// ==== CHAPTER ITEM (Local Import for Subject's list) ====
+// Note: We usually use the separate component, but if you keep it here for self-containment:
 interface ChapterItemProps {
   chapter: { id: string; name: string };
   isActive: boolean;
@@ -48,15 +48,18 @@ const ChapterItem = React.memo(function ChapterItem({ chapter, isActive, onSelec
 
   return (
     <li
-      onClick={() => {
+      onClick={(e) => {
         console.log(`📚 Chapter clicked: ${chapter.name}`);
+        e.stopPropagation(); // Prevent bubbling if needed
         onSelect();
       }}
-      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors ${
-        isActive ? "bg-accent text-accent-foreground" : "hover:bg-accent/50 text-muted-foreground"
+      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all duration-200 ${
+        isActive 
+          ? "gradient-active shadow-sm" 
+          : "gradient-hover text-muted-foreground hover:text-foreground hover:pl-3"
       }`}
     >
-      <FileIcon className="text-muted-foreground flex-shrink-0" />
+      <FileIcon className={`flex-shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
       <span className="truncate">{chapter.name}</span>
     </li>
   );
@@ -107,16 +110,17 @@ export const SubjectItem = React.memo(function SubjectItem({
           console.log(`📂 Subject toggled: ${subject.name}`);
           onToggle();
         }}
-        className="group flex items-center w-full gap-2 p-2 rounded-md hover:bg-accent/50 transition-colors text-left cursor-pointer"
+        // Updated: Use gradient-hover here for the folder row
+        className="group flex items-center w-full gap-2 p-2 rounded-md gradient-hover text-left cursor-pointer transition-all duration-200"
       >
         <div className="flex items-center gap-2 flex-grow">
           <ChevronRight
-            className={`flex-shrink-0 transform transition-all duration-200 ${
-              isExpanded ? 'rotate-90 opacity-100' : 'rotate-0 opacity-0 group-hover:opacity-100'
+            className={`flex-shrink-0 transform transition-all duration-200 text-muted-foreground ${
+              isExpanded ? 'rotate-90 opacity-100 text-foreground' : 'rotate-0 opacity-70 group-hover:opacity-100'
             }`}
           />
-          <FolderIcon className="flex-shrink-0" />
-          <span className="font-semibold text-card-foreground truncate">{subject.name}</span>
+          <FolderIcon className="flex-shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
+          <span className="font-semibold text-card-foreground truncate group-hover:text-primary transition-colors">{subject.name}</span>
         </div>
 
         <button
@@ -125,17 +129,17 @@ export const SubjectItem = React.memo(function SubjectItem({
             console.log(`➕ Add chapter clicked for subject: ${subject.name}`);
             onAddChapter(e);
           }}
-          className="ml-auto p-1 rounded-md hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+          className="ml-auto p-1 rounded-md hover:bg-background/50 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
         >
-          <PlusIcon className="text-muted-foreground" />
+          <PlusIcon className="text-muted-foreground hover:text-primary" />
         </button>
       </div>
 
       {/* Chapters */}
       {isExpanded && (
-        <ul className="pl-12 mt-1 space-y-1">
+        <ul className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-3">
           {subject.chapters.length === 0 ? (
-            <li className="text-sm text-muted-foreground">No chapters yet</li>
+            <li className="text-sm text-muted-foreground pl-4 py-1 italic opacity-50">No chapters yet</li>
           ) : (
             subject.chapters.map((chapter) => (
               <ChapterItem

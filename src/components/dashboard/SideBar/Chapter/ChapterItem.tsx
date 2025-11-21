@@ -18,11 +18,14 @@ export const ChapterItem = React.memo(function ChapterItem({ chapter, isActive, 
   return (
     <li
       onClick={onSelect}
-      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors ${
-        isActive ? "bg-accent text-accent-foreground" : "hover:bg-accent/50 text-muted-foreground"
+      // Applied 'gradient-active' when isActive is true
+      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all duration-200 ${
+        isActive 
+          ? "gradient-active shadow-sm" 
+          : "hover:bg-accent/50 text-muted-foreground hover:pl-3" // Added micro-interaction: slight slide on hover
       }`}
     >
-      <FileIcon className="text-muted-foreground flex-shrink-0" />
+      <FileIcon className={`flex-shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
       <span className="truncate">{chapter.name}</span>
     </li>
   );

@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { NewSubjectModal } from "./Subject/NewSubjectModal";
 import { NewChapterModal } from "./Chapter/NewChapterModal";
 import { getAccessToken } from "@/utils/storage";
-
+import { SidebarSkeleton } from "./SidebarSkeleton";
 import { SearchIcon, Spinner, CollectionIcon, SparkleIcon } from "../Icons";
 
 export const InboxIcon = ({ className }: { className?: string }) => (
@@ -142,42 +142,24 @@ export function NotebookSidebar() {
     setIsChapterModalOpen(true);
   };
 
-  if (isLoading && subjects.length === 0) {
-    return (
-      <aside className="col-span-3 bg-card rounded-lg p-4 flex items-center justify-center h-full border border-border">
-        <div className="text-center">
-          <Spinner />
-          <p className="mt-2 text-muted-foreground">Loading Your Notebook...</p>
-        </div>
-      </aside>
-    );
-  }
+  const uncategorizedSubject = filteredSubjects.find((s) => s.id === "uncategorized-chapters");
+  const uncategorizedChapters = uncategorizedSubject?.chapters || [];
+  const regularSubjects = filteredSubjects.filter(s => s.id !== "uncategorized-chapters");
 
-  if (error) {
-    return <aside>Error: {error}</aside>;
-  }
-
-  const uncategorized = filteredSubjects.find(
-    (s) => s.id === "uncategorized-chapters"
-  );
-  const regularSubjects = filteredSubjects.filter(
-    (s) => s.id !== "uncategorized-chapters"
-  );
-
-  return (
+ return (
     <aside className="col-span-3 bg-card rounded-lg p-4 flex flex-col h-full overflow-y-auto border border-border">
-      {/* Header and Controls */}
+      {/* Header */}
       <div className="flex items-center gap-2 mb-4">
-        <h2 className="text-xl font-bold text-card-foreground">My Notebook</h2>
-        {isLoading && <Spinner />}
+        <h2 className="text-xl font-bold text-card-foreground tracking-tight">My Notebook</h2>
       </div>
 
+      {/* Controls */}
       <div className="flex gap-2 mb-4">
         <NewSubjectModal />
         <Button
           variant="secondary"
           size="sm"
-          className="flex-1"
+          className="flex-1 active-press" // Added micro-interaction
           onClick={() => {
             setSubjectForNewChapter(null);
             setIsChapterModalOpen(true);
@@ -192,79 +174,82 @@ export function NotebookSidebar() {
         <Input
           type="text"
           placeholder="Search..."
-          className="pl-10"
+          className="pl-10 bg-background/50 focus:bg-background transition-colors"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-grow overflow-y-auto -mr-4 pr-4">
-        {/* ✅ CORRECTED: "Alone Chapters" Section */}
-        {uncategorized && uncategorized.chapters.length > 0 && (
-          <div className="px-2 pt-2 pb-1">
-            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
-              <SparkleIcon />
-              <span>Alone Chapters</span>
+      {isLoading && subjects.length === 0 ? (
+        // 1. UX POLISH: Show Skeleton instead of Spinner
+        <SidebarSkeleton />
+      ) : error ? (
+        <div className="text-destructive text-sm p-2 text-center">{error}</div>
+      ) : (
+        <div className="flex-grow overflow-y-auto -mr-4 pr-4 animate-in fade-in duration-300">
+          {/* "Alone Chapters" Section */}
+          {uncategorizedChapters.length > 0 && (
+            <div className="px-2 pt-2 pb-1">
+              <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
+                <SparkleIcon />
+                <span>Alone Chapters</span>
+              </div>
+              <ul className="space-y-1">
+                {(isUncategorizedExpanded
+                  ? uncategorizedChapters
+                  : uncategorizedChapters.slice(0, 5)
+                ).map((chapter) => (
+                  <ChapterItem
+                    key={chapter.id}
+                    chapter={chapter}
+                    isActive={activeChapterId === chapter.id}
+                    onSelect={() => setActiveChapter(chapter.id)}
+                  />
+                ))}
+              </ul>
+
+              {uncategorizedChapters.length > 5 && (
+                <Button
+                  variant="link"
+                  className="p-0 h-auto mt-2 text-sm text-muted-foreground"
+                  onClick={() => setIsUncategorizedExpanded(!isUncategorizedExpanded)}
+                >
+                  {isUncategorizedExpanded ? "Show Less" : "Show More..."}
+                </Button>
+              )}
+              <hr className="my-4 border-border/40" />
             </div>
-            <ul className="space-y-1">
-              {(isUncategorizedExpanded
-                ? uncategorized.chapters
-                : uncategorized.chapters.slice(0, 5)
-              ).map((chapter) => (
-                <ChapterItem
-                  key={chapter.id}
-                  chapter={chapter}
-                  isActive={activeChapterId === chapter.id}
-                  onSelect={() => setActiveChapter(chapter.id)}
-                />
-              ))}
-            </ul>
+          )}
 
-            {uncategorized.chapters.length > 5 && (
-              <Button
-                variant="link"
-                className="p-0 h-auto mt-2 text-sm text-muted-foreground"
-                onClick={() =>
-                  setIsUncategorizedExpanded(!isUncategorizedExpanded)
-                }
-              >
-                {isUncategorizedExpanded
-                  ? "Show Less"
-                  : `Show ${uncategorized.chapters.length - 5} More...`}
-              </Button>
-            )}
-            <hr className="my-4 border-border/20" />
-          </div>
-        )}
-
-        {/* Subjects Section */}
-        <div className="px-2 pt-2 pb-1">
-          <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground">
-            <CollectionIcon />
-            <span>Subjects</span>
-          </div>
-          <div className="space-y-1">
-            {regularSubjects.length > 0 ? (
-              regularSubjects.map((subject) => (
-                <SubjectItem
-                  key={subject.id}
-                  subject={subject}
-                  isExpanded={!!expandedSubjects[subject.id]}
-                  activeChapterId={activeChapterId}
-                  onToggle={() => toggleSubject(subject.id)}
-                  onSelectChapter={setActiveChapter}
-                  onAddChapter={(e) => handleAddNewChapterClick(e, subject.id)}
-                />
-              ))
-            ) : (
-              <p className="px-2 text-sm text-muted-foreground">
-                No subjects yet.
-              </p>
-            )}
+          {/* Subjects Section */}
+          <div className="px-2 pt-2 pb-1">
+            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
+              <CollectionIcon />
+              <span>Subjects</span>
+            </div>
+            <div className="space-y-1">
+              {regularSubjects.length > 0 ? (
+                regularSubjects.map((subject) => (
+                  <SubjectItem
+                    key={subject.id}
+                    subject={subject}
+                    isExpanded={!!expandedSubjects[subject.id]}
+                    activeChapterId={activeChapterId}
+                    onToggle={() => toggleSubject(subject.id)}
+                    onSelectChapter={setActiveChapter}
+                    onAddChapter={(e) => handleAddNewChapterClick(e, subject.id)}
+                  />
+                ))
+              ) : (
+                <p className="px-2 text-sm text-muted-foreground italic">
+                  No subjects yet. Create one!
+                </p>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       <NewChapterModal
         isOpen={isChapterModalOpen}
