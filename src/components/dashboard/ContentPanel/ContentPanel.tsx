@@ -1,117 +1,133 @@
 
-
 // "use client";
 
-// import { AddSourceView } from "./AddSourceView";
+// import { useNotebookStore, Chapter } from "@/lib/store/useNotebook"; 
 // import { ChatView } from "./ChatView";
-// import { useNotebookStore } from "@/lib/store/useNotebook";
-// import { Spinner } from "../Icons";
-
+// import { AddSourceView } from "./AddSourceView";
+// import { ProcessingState } from "./ProcessingState";
+// import { useWebSocket } from "@/hooks/useWebSocket"
 // export function ContentPanel() {
-//   const subjects = useNotebookStore((state) => state.subjects);
-//   const getActiveChapter = useNotebookStore((state) => state.getActiveChapter);
-//   const fetchSubjects = useNotebookStore((state) => state.fetchSubjects);
-//   const isLoading = useNotebookStore((state) => state.isLoading);
-
-//   const activeChapter = getActiveChapter();
-
-
-//   if (isLoading && subjects.length === 0) {
-//     console.log("%c⏳ STATE: App is loading initial data...");
+  
+//   const activeChapter = useNotebookStore((state) => {
+//     if (!state.activeChapterId) {
+//       return null;
+//     }
 //     return (
-//       <section className="bg-white/10 backdrop-blur-lg border border-white/20 col-span-5 bg-card rounded-lg flex flex-col h-full items-center justify-center border border-border">
-//         <Spinner />
-//       </section>
+//       state.subjects
+//         .flatMap((s) => s.chapters)
+//         .find((c) => c.id === state.activeChapterId) || null
 //     );
-//   }
-
- 
-//   if (activeChapter) {
-
-//     console.log(`%c✅ STATE: Entered Chapter -> "${activeChapter.name}"`);
-   
-//     if (!activeChapter.documents || activeChapter.documents.length === 0) {
-//       console.log("%c📄 ...Chapter has no documents. Ready to add a source.");
-//       return (
+//   });
+  
+  
+//   const fetchSubjects = useNotebookStore((state) => state.fetchSubjects);
+//   const { socket } = useWebSocket();
+  
+//   if (!activeChapter) {
+    
+//     return (
 //         <section className="col-span-5 bg-card rounded-lg flex flex-col h-full items-center justify-center border border-border">
 //           <AddSourceView onSourceAdded={fetchSubjects} />
 //         </section>
-//       );
-//     }
-
-//    console.log("%c💬 ...Chapter has documents. You are ready to chat!");
-//     return (
-//       <section className="col-span-5 bg-card rounded-lg flex flex-col h-full overflow-hidden border border-border">
-//         <ChatView sources={activeChapter.documents} />
-//       </section>
 //     );
 //   }
-  
-//   console.log("%c🏠 STATE: No chapter selected. Displaying default Add Source view.");
-//   return (
-//     <section className="col-span-5 bg-card rounded-lg flex flex-col h-full items-center justify-center border border-border">
-//       <AddSourceView onSourceAdded={fetchSubjects} />
-//     </section>
-//   );
-// }
 
+//   // Case 2: A chapter is selected. Check if it's ready for chat.
+//   const isReadyForChat =
+//     activeChapter.documents &&
+//     activeChapter.documents.length > 0 &&
+//     activeChapter.documents.some((doc) => doc.status === "COMPLETED");
 
-// features/notebook/components/ContentPanel.tsx
+//   if (isReadyForChat) {
+//     // ✅ If ready, show the chat interface.
+//     return (
+//         <section className="col-span-5 bg-card rounded-lg flex flex-col h-full overflow-hidden border border-border">
+//           <ChatView chapter={activeChapter} />
+//         </section>
+//     );
+//   } else {
+//     // 📄 Otherwise, show the view for adding a source.
+//     return (
+//         <section className="col-span-5 bg-card rounded-lg flex flex-col h-full items-center justify-center border border-border">
+//           <AddSourceView chapter={activeChapter} onSourceAdded={fetchSubjects} />
+//         </section>
+//     );
+//   }
+
 
 "use client";
 
-import { useNotebookStore, Chapter } from "@/lib/store/useNotebook"; 
+import { useEffect, useState } from "react"; // Import useState
+import { useNotebookStore } from "@/lib/store/useNotebook";
 import { ChatView } from "./ChatView";
 import { AddSourceView } from "./AddSourceView";
+import { useWebSocket } from "@/hooks/useWebSocket"; 
 
 export function ContentPanel() {
-  
   const activeChapter = useNotebookStore((state) => {
-    if (!state.activeChapterId) {
-      return null;
-    }
-    return (
-      state.subjects
-        .flatMap((s) => s.chapters)
-        .find((c) => c.id === state.activeChapterId) || null
-    );
+    if (!state.activeChapterId) return null;
+    return state.subjects.flatMap((s) => s.chapters).find((c) => c.id === state.activeChapterId) || null;
   });
-  
-  
-  const fetchSubjects = useNotebookStore((state) => state.fetchSubjects);
 
-  
+  const fetchSubjects = useNotebookStore((state) => state.fetchSubjects);
+  const { socket } = useWebSocket();
+
+  // --- NEW: State to force re-rendering of views ---
+  const [viewKey, setViewKey] = useState(0);
+
+  // --- Listen for notifications ---
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === "send_notification" && (data.message === "notebook_updated" || data.message === "document_ready")) {
+          console.log("🔔 WebSocket notification received. Refreshing data and UI.");
+          
+          // 1. Refresh the data in the store
+          fetchSubjects();
+          
+          // 2. Force current view to reset. This kills the 'isProcessing' state.
+          setViewKey(prev => prev + 1);
+        }
+      } catch (error) {
+        console.error("Error parsing WebSocket message:", error);
+      }
+    };
+
+    socket.addEventListener("message", handleMessage);
+    return () => socket.removeEventListener("message", handleMessage);
+  }, [socket, fetchSubjects]);
+  // ------------------------------------
+
+  // CASE 1: No chapter selected. Show Add Source view.
   if (!activeChapter) {
-    
     return (
-        <section className="col-span-5 bg-card rounded-lg flex flex-col h-full items-center justify-center border border-border">
+        // Add the key here. When viewKey changes, this entire section re-mounts.
+        <section key={`add-source-${viewKey}`} className="col-span-5 bg-card rounded-lg flex flex-col h-full items-center justify-center border border-border">
           <AddSourceView onSourceAdded={fetchSubjects} />
         </section>
     );
   }
 
-  // Case 2: A chapter is selected. Check if it's ready for chat.
-  const isReadyForChat =
-    activeChapter.documents &&
-    activeChapter.documents.length > 0 &&
-    activeChapter.documents.some((doc) => doc.status === "COMPLETED");
+  // CASE 2: Chapter selected. Check if ready.
+  const isReadyForChat = activeChapter.documents && activeChapter.documents.length > 0 && activeChapter.documents.some((doc) => doc.status === "COMPLETED");
 
   if (isReadyForChat) {
-    // ✅ If ready, show the chat interface.
     return (
-        <section className="col-span-5 bg-card rounded-lg flex flex-col h-full overflow-hidden border border-border">
+        // Add key here too, just in case updates happen while chatting
+        <section key={`chat-${viewKey}`} className="col-span-5 bg-card rounded-lg flex flex-col h-full overflow-hidden border border-border">
           <ChatView chapter={activeChapter} />
         </section>
     );
   } else {
-    // 📄 Otherwise, show the view for adding a source.
+    // CASE 3: Chapter selected but processing. Show Add Source (contextual).
     return (
-        <section className="col-span-5 bg-card rounded-lg flex flex-col h-full items-center justify-center border border-border">
+        // Add key here too
+        <section key={`add-source-context-${viewKey}`} className="col-span-5 bg-card rounded-lg flex flex-col h-full items-center justify-center border border-border">
           <AddSourceView chapter={activeChapter} onSourceAdded={fetchSubjects} />
         </section>
     );
   }
-
-
-  
 }

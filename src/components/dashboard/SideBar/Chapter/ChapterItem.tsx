@@ -22,7 +22,7 @@ export const ChapterItem = React.memo(function ChapterItem({ chapter, isActive, 
       className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all duration-200 ${
         isActive 
           ? "gradient-active shadow-sm" 
-          : "hover:bg-accent/50 text-muted-foreground hover:pl-3" // Added micro-interaction: slight slide on hover
+          : "gradient-hover text-muted-foreground hover:text-foreground hover:pl-3" 
       }`}
     >
       <FileIcon className={`flex-shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`} />

@@ -6,6 +6,7 @@ import { useNotebookStore, Chapter, Message } from "@/lib/store/useNotebook";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ChatSkeleton } from "./ChatSkeleton";
 
 // --- Icons ---
 const SendIcon = () => (
@@ -75,13 +76,15 @@ export function ChatView({ chapter }: ChatViewProps) {
 
   const messages = chapter.messages || [];
 
+  const isLoadingHistory = chapter.pagination?.isLoading && messages.length === 0;
+
   // --- EFFECTS ---
   useEffect(() => {
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop =
         chatContainerRef.current.scrollHeight;
     }
-  }, [messages.length]);
+  }, [messages.length, isAiResponding]);
 
   // --- HANDLERS ---
   const handleSubmit = (e: React.FormEvent) => {
@@ -94,67 +97,84 @@ export function ChatView({ chapter }: ChatViewProps) {
   return (
     <>
       {/* Header */}
-      <div className="p-4 border-b border-border flex-shrink-0">
-        <h2 className="text-lg font-semibold text-foreground">
-          Chat with: {chapter.name}
+      <div className="p-4 border-b border-border flex-shrink-0 bg-background/50 backdrop-blur-sm z-10">
+        <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
+          {chapter.name}
         </h2>
-        <p className="text-sm text-muted-foreground">
-          {chapter.documents.length} source(s) available
+        <p className="text-xs text-muted-foreground">
+          {chapter.documents.length} source(s) connected
         </p>
       </div>
 
-      {/* Chat History */}
+      {/* Chat History Area */}
       <div
         ref={chatContainerRef}
-        className="flex-grow p-4 overflow-y-auto space-y-6"
+        className="flex-grow overflow-y-auto relative scroll-smooth"
       >
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
-            className={cn(
-              "flex items-start gap-4",
-              msg.sender === "user" && "flex-row-reverse"
-            )}
-          >
-            <div
-              className={cn(
-                "p-2 rounded-full",
-                msg.sender === "user"
-                  ? "bg-primary/10 text-primary"
-                  : "bg-muted"
-              )}
-            >
-              {msg.sender === "user" ? <UserIcon /> : <BotIcon />}
-            </div>
-
-            <div
-              className={cn(
-                "p-3 rounded-lg max-w-[80%] prose dark:prose-invert",
-                msg.sender === "user"
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground"
-              )}
-            >
-              <ReactMarkdown>{msg.text}</ReactMarkdown>
-            </div>
-            {/* --- END OF CHANGE --- */}
+        {isLoadingHistory ? (
+          // 1. UX POLISH: Show Futuristic Skeleton while loading
+          <ChatSkeleton />
+        ) : messages.length === 0 ? (
+          // Empty State
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground p-8 text-center opacity-60">
+            <BotIcon />
+            <p className="mt-4">No messages yet. Ask something!</p>
           </div>
-        ))}
-        {/* Loading indicator for when the AI is responding */}
-        {isAiResponding && (
-          <div className="flex items-start gap-4">
-            <div className="p-2 rounded-full bg-muted">
-              <BotIcon />
-            </div>
-            <div className="p-3 rounded-lg bg-muted text-muted-foreground">
-              <span className="animate-pulse">Thinking...</span>
-            </div>
+        ) : (
+          // Actual Messages
+          <div className="p-4 space-y-6">
+            {messages.map((msg) => (
+              <div
+                key={msg.id}
+                className={cn(
+                  "flex items-start gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300",
+                  msg.sender === "user" && "flex-row-reverse"
+                )}
+              >
+                <div
+                  className={cn(
+                    "p-2 rounded-full shrink-0",
+                    msg.sender === "user"
+                      ? "bg-primary/10 text-primary"
+                      : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {msg.sender === "user" ? <UserIcon /> : <BotIcon />}
+                </div>
+
+                <div
+                  className={cn(
+                    "p-3 px-4 rounded-2xl max-w-[85%] prose dark:prose-invert text-sm leading-relaxed shadow-sm",
+                    msg.sender === "user"
+                      ? "bg-primary text-primary-foreground rounded-tr-none"
+                      : "bg-card border border-border rounded-tl-none"
+                  )}
+                >
+                  <ReactMarkdown>{msg.text}</ReactMarkdown>
+                </div>
+              </div>
+            ))}
+            
+            {/* Loading indicator for when the AI is responding */}
+            {isAiResponding && (
+              <div className="flex items-start gap-4 animate-pulse">
+                <div className="p-2 rounded-full bg-muted text-muted-foreground">
+                  <BotIcon />
+                </div>
+                <div className="p-3 px-4 rounded-2xl rounded-tl-none bg-muted/30 text-muted-foreground text-sm flex items-center gap-1">
+                  <span>Thinking</span>
+                  <span className="animate-bounce delay-75">.</span>
+                  <span className="animate-bounce delay-150">.</span>
+                  <span className="animate-bounce delay-200">.</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
       {/* Chat Input */}
-      <div className="p-4 border-t border-border flex-shrink-0 bg-background">
+      <div className="p-4 border-t border-border flex-shrink-0 bg-background/80 backdrop-blur-md">
         <form
           onSubmit={handleSubmit}
           className="relative flex gap-2 items-center"
@@ -162,21 +182,21 @@ export function ChatView({ chapter }: ChatViewProps) {
           <Input
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Ask about your sources..."
-            className="flex-grow pr-12"
-            disabled={isAiResponding}
+            placeholder={`Ask about "${chapter.name}"...`}
+            className="flex-grow pr-12 h-12 bg-card/50 focus:bg-card transition-all"
+            disabled={isAiResponding || isLoadingHistory}
           />
           <Button
             type="submit"
             size="icon"
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 h-7 w-7"
+            className="absolute right-1.5 top-1/2 -translate-y-1/2 h-9 w-9 rounded-md transition-transform active:scale-95"
             disabled={isAiResponding || !inputValue.trim()}
           >
             <SendIcon />
           </Button>
         </form>
-        <p className="text-xs text-center text-muted-foreground mt-2">
-          StudyWise can be inaccurate. Please double-check its responses.
+        <p className="text-[10px] text-center text-muted-foreground/60 mt-2">
+          AI can make mistakes. Verify important information.
         </p>
       </div>
     </>

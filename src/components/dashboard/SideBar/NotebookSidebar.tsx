@@ -10,26 +10,9 @@ import { Input } from "@/components/ui/input";
 import { NewSubjectModal } from "./Subject/NewSubjectModal";
 import { NewChapterModal } from "./Chapter/NewChapterModal";
 import { getAccessToken } from "@/utils/storage";
-import { SidebarSkeleton } from "./SidebarSkeleton";
-import { SearchIcon, Spinner, CollectionIcon, SparkleIcon } from "../Icons";
+import { SidebarSkeleton } from "./SidebarSkeleton"; 
 
-export const InboxIcon = ({ className }: { className?: string }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M22 12h-6l-2 3h-4l-2-3H2" />
-    <path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z" />
-  </svg>
-);
+import { SearchIcon, CollectionIcon, SparkleIcon } from "../Icons";
 
 export function NotebookSidebar() {
   const {
@@ -40,58 +23,46 @@ export function NotebookSidebar() {
     isLoading,
     error,
   } = useNotebookStore();
-  const [expandedSubjects, setExpandedSubjects] = useState<
-    Record<string, boolean>
-  >({});
+  
+  const [expandedSubjects, setExpandedSubjects] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
-
   const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
-  const [subjectForNewChapter, setSubjectForNewChapter] = useState<
-    string | null
-  >(null);
-
+  const [subjectForNewChapter, setSubjectForNewChapter] = useState<string | null>(null);
   const [isUncategorizedExpanded, setIsUncategorizedExpanded] = useState(false);
 
   const toggleSubject = (subjectId: string) => {
     setExpandedSubjects((prev) => ({ ...prev, [subjectId]: !prev[subjectId] }));
   };
 
+  // Initial Fetch
   useEffect(() => {
     fetchSubjects();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // WebSocket logic
   useEffect(() => {
-    const authToken = getAccessToken(); // Use your function to get the token
-    if (!authToken) {
-      console.log("No auth token found, WebSocket not connecting.");
-      return;
-    }
+    const authToken = getAccessToken(); 
+    if (!authToken) return;
 
     const ws = new WebSocket(
       `ws://localhost:8000/ws/notifications/?token=${authToken}`
     );
 
-    ws.onopen = () =>
-      console.log("✅ WebSocket connected for real-time notebook updates.");
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
         if (data.message === "notebook_updated") {
-          console.log("🔄 Notebook update received! Re-fetching subjects...");
-          fetchSubjects();
+          fetchSubjects(); 
         }
       } catch (e) {
-        console.error("Failed to parse WebSocket message:", e);
+        console.error("WebSocket error", e);
       }
     };
-    ws.onclose = () => console.log("WebSocket disconnected.");
-    ws.onerror = (err) => console.error("WebSocket error:", err);
-
-    // Cleanup function to close the socket when the component unmounts
     return () => ws.close();
   }, [fetchSubjects]);
 
+  // Filter logic
   const filteredSubjects = useMemo(() => {
     if (!debouncedSearchQuery.trim()) {
       const uniqueSubjects = Array.from(
@@ -124,6 +95,7 @@ export function NotebookSidebar() {
     );
   }, [subjects, debouncedSearchQuery]);
 
+  // Search Expand logic
   useEffect(() => {
     if (debouncedSearchQuery.trim()) {
       const newExpandedState = Object.fromEntries(
@@ -133,20 +105,23 @@ export function NotebookSidebar() {
     }
   }, [debouncedSearchQuery, filteredSubjects]);
 
-  const handleAddNewChapterClick = (
-    event: React.MouseEvent,
-    subjectId: string
-  ) => {
+  const handleAddNewChapterClick = (event: React.MouseEvent, subjectId: string) => {
     event.stopPropagation();
     setSubjectForNewChapter(subjectId);
     setIsChapterModalOpen(true);
   };
 
+  // --- FIX: Safe Data Extraction ---
+  // We extract these variables here so we don't need confusing optional chaining in the JSX
   const uncategorizedSubject = filteredSubjects.find((s) => s.id === "uncategorized-chapters");
+  // If undefined, default to empty array. No '!' needed.
   const uncategorizedChapters = uncategorizedSubject?.chapters || [];
+  
   const regularSubjects = filteredSubjects.filter(s => s.id !== "uncategorized-chapters");
 
- return (
+  // --- RENDER ---
+
+  return (
     <aside className="col-span-3 bg-card rounded-lg p-4 flex flex-col h-full overflow-y-auto border border-border">
       {/* Header */}
       <div className="flex items-center gap-2 mb-4">
@@ -159,10 +134,11 @@ export function NotebookSidebar() {
         <Button
           variant="secondary"
           size="sm"
-          className="flex-1 active-press" // Added micro-interaction
+          className="flex-1 active-press"
           onClick={() => {
             setSubjectForNewChapter(null);
-            setIsChapterModalOpen(true);
+            setIsChapterModalOpen(true)
+            setActiveChapter(null);
           }}
         >
           New Chapter
@@ -182,12 +158,12 @@ export function NotebookSidebar() {
 
       {/* Main Content Area */}
       {isLoading && subjects.length === 0 ? (
-        // 1. UX POLISH: Show Skeleton instead of Spinner
         <SidebarSkeleton />
       ) : error ? (
         <div className="text-destructive text-sm p-2 text-center">{error}</div>
       ) : (
         <div className="flex-grow overflow-y-auto -mr-4 pr-4 animate-in fade-in duration-300">
+          
           {/* "Alone Chapters" Section */}
           {uncategorizedChapters.length > 0 && (
             <div className="px-2 pt-2 pb-1">
