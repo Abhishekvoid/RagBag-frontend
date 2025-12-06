@@ -61,7 +61,7 @@ export function LoginForm() {
   try {
     console.log('🚀 About to make API call to:', `${process.env.NEXT_PUBLIC_API_URL}/auth/jwt/create/`);
     
-    const response = await api.post("/auth/jwt/create/", data);
+    const response = await api.post("/auth/jwt/create/", data, {timeout: 60000});
     
     console.log('✅ API Response received:', response);
     console.log('📊 Response status:', response.status);

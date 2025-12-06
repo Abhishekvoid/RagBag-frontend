@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import { notebookApi } from "@/features/notebook/notebook.api";
-import { Chapter } from "@/lib/store/useNotebook";
+import { Chapter, useNotebookStore } from "@/lib/store/useNotebook";
 import { UploadCloud, FileText, X, Loader2, ArrowUp, BrainCircuit } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -21,6 +21,8 @@ export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
 
   // --- HANDLERS ---
 
+  const fetchSubjects = useNotebookStore((state) => state.fetchSubjects);
+
   const handleFileSelect = async (file: File) => {
     if (!file) return;
     
@@ -28,7 +30,7 @@ export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
     
     setError(null);
     setIsUploading(true);
-    setIsProcessing(false);
+  
 
     const formData = new FormData();
     formData.append("file", file);
@@ -41,16 +43,22 @@ export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
       await notebookApi.uploadDocument(formData);
       console.log("✅ Upload success");
       
-      // Wait a tiny bit to ensure the DB transaction on the server has likely committed
-      // and the status is at least 'PENDING' or 'PROCESSING'
-      setIsUploading(false);
-      setIsProcessing(true);
+      let retries = 0;
+      const  maxRetries = 10;
+
+      const checkStatus = async () => {
+
+        await fetchSubjects();
+        onSourceAdded();
+        setIsUploading(false);
+      };
       
+      setTimeout(checkStatus, 2000);
     } catch (err) {
       console.error("❌ Upload failed:", err);
       setError("Upload failed. Please try a valid PDF or DOCX.");
       setIsUploading(false);
-      setIsProcessing(false);
+
     }
   };
 
@@ -82,7 +90,7 @@ export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
 
   // --- RENDER ---
 
-  return (
+   return (
     <div className="flex flex-col items-center justify-center h-full w-full p-6">
       <div className="w-full max-w-lg">
         
@@ -96,11 +104,7 @@ export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
         </div>
 
         <motion.div
-          onClick={() => {
-            if (!isUploading && !isProcessing) {
-                fileInputRef.current?.click();
-            }
-          }}
+          onClick={() => !isUploading && fileInputRef.current?.click()}
           onDragOver={onDragOver}
           onDragLeave={onDragLeave}
           onDrop={onDrop}
@@ -111,17 +115,19 @@ export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
             isDragActive 
               ? "border-primary bg-primary/5 scale-[1.02] shadow-2xl shadow-primary/10" 
               : "border-muted-foreground/20 hover:border-primary/50 hover:bg-muted/30",
-            error && "border-destructive/50 bg-destructive/5",
-            (isUploading || isProcessing) && "pointer-events-none"
+            error && "border-destructive/50 bg-destructive/5"
           )}
         >
           <input
             ref={fileInputRef}
             type="file"
             accept=".pdf,.docx,.txt"
-            onChange={onFileChange}
+            onChange={(e) => {
+                if (e.target.files?.[0]) handleFileSelect(e.target.files[0]);
+                e.target.value = ""; // Reset input
+            }}
             className="hidden"
-            disabled={isUploading || isProcessing}
+            disabled={isUploading}
           />
 
           <AnimatePresence mode="wait">
@@ -140,28 +146,6 @@ export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
                 <p className="text-sm font-medium text-muted-foreground animate-pulse">
                   Uploading to secure storage...
                 </p>
-              </motion.div>
-            ) : isProcessing ? (
-              <motion.div
-                key="processing"
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.8 }}
-                className="flex flex-col items-center gap-4"
-              >
-                <div className="relative">
-                  <div className="absolute inset-0 bg-purple-500/20 blur-xl rounded-full animate-pulse" />
-                  {/* Use a different icon, like a brain or gears */}
-                  <BrainCircuit className="w-12 h-12 text-purple-500 animate-pulse relative z-10" />
-                </div>
-                <div className="text-center space-y-1">
-                    <p className="text-sm font-medium text-foreground animate-pulse">
-                      AI is analyzing your document...
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      This may take a few moments.
-                    </p>
-                </div>
               </motion.div>
             ) : (
               <motion.div
