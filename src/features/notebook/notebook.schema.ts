@@ -61,9 +61,6 @@ export type DocumentInput = z.infer<typeof documentInputSchema>;
 export type ChatSessionInput = z.infer<typeof chatSessionInputSchema>;
 export type ChatMessageInput = z.infer<typeof chatMessageInputSchema>;
 
-// ==================================================================
-// --- API Response (DTO) Schemas (For validating backend data) ---
-// ==================================================================
 
 export const documentResponseSchema = z.object({
   id: z.uuid(),

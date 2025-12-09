@@ -1,8 +1,7 @@
-// features/notebook/notebook.api.ts
 
 import api from "@/lib/axios";
 import { z } from "zod";
-// --- NEW: Import all schemas and types from the single schema file ---
+
 import {
   SubjectInput,
   ChapterInput,
