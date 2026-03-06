@@ -17,10 +17,12 @@ import {
 } from "@/components/ui/card";
 import { loginSchema, type LoginInput } from "@/features/auth/auth.schemas";
 import api from "@/lib/axios";
-import { setTokens } from "@/utils/storage";
+
 
 import { signIn } from "next-auth/react";
 import googleAuthIcon from "@/components/icons/googleauth.png";
+import { setTokens, setUser } from "@/utils/storage";
+import { AArrowUp } from "lucide-react";
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -77,6 +79,10 @@ export function LoginForm() {
     
     setTokens(access, refresh);
     console.log('💾 Tokens stored in cookies');
+    
+    const me = await api.get("auth/me/");
+    setUser(me.data)
+
     
     // Check if tokens were actually stored
     setTimeout(() => {

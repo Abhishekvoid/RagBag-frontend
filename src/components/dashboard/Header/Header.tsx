@@ -3,13 +3,13 @@
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { clearTokens } from "@/utils/storage"; 
-// import { ThemeSwitcher } from "@/components/theme/ThemeSwitcher";
+import { getUser } from "@/utils/storage";
 
 
 export function Header() {
   const router = useRouter();
 
-  const user = { name: "Abhishek" }; 
+  const user = getUser(); 
 
   const handleLogout = () => {
     clearTokens();
@@ -27,7 +27,7 @@ export function Header() {
       </div>
        {/* <ThemeSwitcher /> */}
       <div className="flex items-center gap-4">
-        <span className="text-sm text-muted-foreground hidden sm:inline">Welcome, {user.name}</span>
+        <span className="text-sm text-muted-foreground hidden sm:inline">Welcome, {user?.name || "User"}</span>
         <Button onClick={handleLogout} variant="ghost" size="sm" className="hover:bg-destructive/10 hover:text-destructive">Logout</Button>
       </div>
     </header>
