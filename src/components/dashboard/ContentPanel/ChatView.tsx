@@ -76,7 +76,8 @@ export function ChatView({ chapter }: ChatViewProps) {
 
   const messages = chapter.messages || [];
 
-  const isLoadingHistory = chapter.pagination?.isLoading && messages.length === 0;
+  const isLoadingHistory =
+    chapter.pagination?.isLoading && messages.length === 0;
 
   // --- EFFECTS ---
   useEffect(() => {
@@ -128,7 +129,7 @@ export function ChatView({ chapter }: ChatViewProps) {
                 key={msg.id}
                 className={cn(
                   "flex items-start gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300",
-                  msg.sender === "user" && "flex-row-reverse"
+                  msg.sender === "user" && "flex-row-reverse",
                 )}
               >
                 <div
@@ -136,7 +137,7 @@ export function ChatView({ chapter }: ChatViewProps) {
                     "p-2 rounded-full shrink-0",
                     msg.sender === "user"
                       ? "bg-primary/10 text-primary"
-                      : "bg-muted text-muted-foreground"
+                      : "bg-muted text-muted-foreground",
                   )}
                 >
                   {msg.sender === "user" ? <UserIcon /> : <BotIcon />}
@@ -144,17 +145,40 @@ export function ChatView({ chapter }: ChatViewProps) {
 
                 <div
                   className={cn(
-                    "p-3 px-4 rounded-2xl max-w-[85%] prose dark:prose-invert text-sm leading-relaxed shadow-sm",
+                    "p-4 px-6 rounded-2xl max-w-[90%] prose prose-headings:text-foreground prose-p:mb-6 prose-p:mt-6 prose-p:leading-relaxed prose-p:text-sm prose-strong:font-semibold prose-ul:mt-6 prose-ul:mb-6 prose-li:leading-relaxed prose-li:mb-2 shadow-lg",
                     msg.sender === "user"
-                      ? "bg-primary text-primary-foreground rounded-tr-none"
-                      : "bg-card border border-border rounded-tl-none"
+                      ? "bg-gradient-to-r from-primary/20 to-primary/10 text-primary-foreground rounded-tr-none border"
+                      : "bg-card/95 backdrop-blur-sm border border-border/50 rounded-tl-none",
                   )}
                 >
-                  <ReactMarkdown>{msg.text}</ReactMarkdown>
+                  <ReactMarkdown
+                    components={{
+                      p: ({ children }) => (
+                        <p className="mb-8 leading-7 first:mt-0 last:mb-0">
+                          {children}
+                        </p>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="mt-6 mb-6 space-y-3 list-disc ml-6">
+                          {children}
+                        </ul>
+                      ),
+                      li: ({ children }) => (
+                        <li className="mb-3 leading-7">{children}</li>
+                      ),
+                      strong: ({ children }) => (
+                        <strong className="font-semibold text-foreground">
+                          {children}
+                        </strong>
+                      ),
+                    }}
+                  >
+                    {msg.text}
+                  </ReactMarkdown>
                 </div>
               </div>
             ))}
-            
+
             {/* Loading indicator for when the AI is responding */}
             {isAiResponding && (
               <div className="flex items-start gap-4 animate-pulse">

@@ -118,7 +118,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
                 isGeneratingFlashCard: false,
                 flashcardError: null,
               })),
-            })
+            }),
           );
 
           set({ subjects: subjectsWithChatState, isLoading: false });
@@ -162,7 +162,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
         set((state) =>
           updateChapterState(state, chapterId, {
             isGeneratingQuestions: true,
-          })
+          }),
         );
 
         try {
@@ -172,7 +172,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
             updateChapterState(state, chapterId, {
               questions: newQuestions,
               isGeneratingQuestions: false,
-            })
+            }),
           );
         } catch (error) {
           console.error("Failed to generate questions:", error);
@@ -180,7 +180,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
           set((state) =>
             updateChapterState(state, chapterId, {
               isGeneratingQuestions: false,
-            })
+            }),
           );
         }
       },
@@ -239,11 +239,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
         set({ activeChapterId: chapterId });
         if (chapterId) {
           const chapter = get().getActiveChapter();
-          if (
-            chapter &&
-            chapter.messages.length === 0 &&
-            chapter.pagination.hasMore
-          ) {
+          if (chapter && !chapter.hasHistoryLoaded) {
             void get().loadChatHistory(chapterId);
           }
         }
@@ -267,7 +263,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
         set((state) =>
           updateChapterState(state, chapterId, {
             pagination: { ...chapterState.pagination, isLoading: true },
-          })
+          }),
         );
 
         try {
@@ -275,22 +271,23 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
           const paginatedResponse: PaginatedMessages =
             await notebookApi.fetchChapterMessages(initialUrl);
 
-          const messages: Message[] = paginatedResponse.results.map(
-            (m: RagChatMessageDTO) => ({
+          const messages: Message[] = paginatedResponse.results
+            .reverse()
+            .map((m: RagChatMessageDTO) => ({
               ...m,
-            })
-          );
+            }));
 
           set((state) =>
             updateChapterState(state, chapterId, {
               messages,
+              hasHistoryLoaded: true,
               pagination: {
                 ...chapterState.pagination,
                 isLoading: false,
                 nextPageUrl: paginatedResponse.next,
                 hasMore: !!paginatedResponse.next,
               },
-            })
+            }),
           );
         } catch (err) {
           console.error("NotebookStore Error - loadChatHistory:", err);
@@ -299,7 +296,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
             set((state) =>
               updateChapterState(state, chapterId, {
                 pagination: { ...current.pagination, isLoading: false },
-              })
+              }),
             );
           }
         }
@@ -317,19 +314,19 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
         set((state) =>
           updateChapterState(state, chapterId, {
             pagination: { ...chapterState.pagination, isLoadingMore: true },
-          })
+          }),
         );
 
         try {
           const paginatedResponse: PaginatedMessages =
             await notebookApi.fetchChapterMessages(
-              chapterState.pagination.nextPageUrl
+              chapterState.pagination.nextPageUrl,
             );
 
           const newMessages: Message[] = paginatedResponse.results.map(
             (m: RagChatMessageDTO) => ({
               ...m,
-            })
+            }),
           );
 
           set((state) => {
@@ -353,7 +350,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
             set((state) =>
               updateChapterState(state, chapterId, {
                 pagination: { ...current.pagination, isLoadingMore: false },
-              })
+              }),
             );
           }
         }
@@ -369,7 +366,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
         set((state) =>
           updateChapterState(state, activeChapter.id, {
             messages: [...activeChapter.messages, userMessage],
-          })
+          }),
         );
 
         try {
@@ -412,7 +409,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
           updateChapterState(state, chapterId, {
             isGeneratingFlashCard: true,
             flashcardError: null,
-          })
+          }),
         );
 
         try {
@@ -422,7 +419,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
             updateChapterState(state, chapterId, {
               flashcards: newFlashCard,
               isGeneratingFlashCard: false,
-            })
+            }),
           );
         } catch (error) {
           console.error("failed generate FlashCards:", error);
@@ -435,7 +432,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
             updateChapterState(state, chapterId, {
               isGeneratingFlashCard: false,
               flashcardError: message,
-            })
+            }),
           );
         }
       },
@@ -444,7 +441,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
         set((state) =>
           updateChapterState(state, chapterId, {
             flashcardError: null,
-          })
+          }),
         );
 
         try {
@@ -452,7 +449,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
           set((state) =>
             updateChapterState(state, chapterId, {
               flashcards: fetchFlashCards,
-            })
+            }),
           );
         } catch (error) {
           console.error("failed to fetchFlashacrds");
@@ -464,7 +461,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
           set((state) =>
             updateChapterState(state, chapterId, {
               flashcardError: message,
-            })
+            }),
           );
         }
       },
@@ -473,7 +470,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
         try {
           const updateFlashCard = await notebookApi.updatedFlashCard(
             flashcardId,
-            data
+            data,
           );
 
           set((state) => {
@@ -487,7 +484,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
               console.warn(
                 "Active chapter not found or flashcard not associated with active chapter:",
                 activeChapterId,
-                flashcardId
+                flashcardId,
               );
               return state;
             }
@@ -498,7 +495,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
             }
 
             const updateFlashCards = currentChapter.flashcards.map((card) =>
-              card.id === flashcardId ? updateFlashCard : card
+              card.id === flashcardId ? updateFlashCard : card,
             );
 
             return updateChapterState(state, currentChapter.id, {
@@ -525,13 +522,13 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
               console.warn(
                 "Actice chapter not found or flashcards not associated with active chapter:",
                 activeChapterId,
-                flashcardId
+                flashcardId,
               );
               return state;
             }
 
             const updateFlashCards = currentChapter.flashcards.filter(
-              (card) => card.id !== flashcardId
+              (card) => card.id !== flashcardId,
             );
 
             return updateChapterState(state, currentChapter.id, {
@@ -548,8 +545,8 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
         set({ currentStudioView: view });
       },
     }),
-    { name: "StudyWiseNotebookStore" }
-  )
+    { name: "StudyWiseNotebookStore" },
+  ),
 );
 
 // --- HELPERS ---
@@ -559,13 +556,13 @@ const findChapter = (state: NotebookState, chapterId: string) =>
 const updateChapterState = (
   state: NotebookState,
   chapterId: string,
-  updates: Partial<Chapter>
+  updates: Partial<Chapter>,
 ): NotebookState => ({
   ...state,
   subjects: state.subjects.map((subject) => ({
     ...subject,
     chapters: subject.chapters.map((chapter) =>
-      chapter.id === chapterId ? { ...chapter, ...updates } : chapter
+      chapter.id === chapterId ? { ...chapter, ...updates } : chapter,
     ),
   })),
 });
