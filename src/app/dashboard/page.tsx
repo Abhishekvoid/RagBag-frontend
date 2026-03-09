@@ -13,25 +13,26 @@ export default function DashboardPage() {
   return (
     <div className="h-screen flex flex-col bg-background text-foreground">
       <Header />
-   
-      <Split
-        direction="horizontal"
-        sizes={[20, 55, 25]} 
-        minSize={100} 
-        gutterSize={10} 
-        className="flex h-full w-full"
-      >
-       
-        <div className="overflow-auto">
-          <NotebookSidebar />
-        </div>
-        <div className="overflow-auto">
-          <ContentPanel />
-        </div>
-        <div className="overflow-auto">
-          <StudioPanel />
-        </div>
-      </Split>
+      <div className="flex-1 flex overflow-hidden">
+        <Split
+          direction="horizontal"
+          sizes={[20, 55, 25]} 
+          minSize={100} 
+          gutterSize={10} 
+          className="flex h-full w-full"
+        >
+        
+          <div className="flex flex-col overflow-hidden">
+            <NotebookSidebar />
+          </div>
+          <div className="flex flex-col overflow-hidden">
+            <ContentPanel />
+          </div>
+          <div className="flex flex-col overflow-hidden">
+            <StudioPanel />
+          </div>
+        </Split>
+      </div>
     </div>
   );
 }
