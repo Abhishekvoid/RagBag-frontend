@@ -7,7 +7,6 @@ import {
   ChapterInput,
   ChatSessionInput,
   ChatMessageInput,
-  Message,
   SubjectDTO,
   ChapterDTO,
   DocumentDTO,
@@ -23,7 +22,6 @@ import {
   GeneratedQuestion,
   flashCardSchema,
   FlashCard,
-  FlashCardUpdate,
   flashCardUpdateSchema,
 } from "./notebook.schema";
 import axios from "axios";

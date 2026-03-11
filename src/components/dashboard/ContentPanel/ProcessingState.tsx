@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, BrainCircuit, Search, Database, FileText, Sparkles } from "lucide-react";
+import {BrainCircuit, Search, Database, FileText, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GrainOverlay } from "@/components/ui/GrainOverlay";
 

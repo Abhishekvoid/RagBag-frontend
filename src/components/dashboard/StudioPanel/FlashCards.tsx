@@ -6,7 +6,7 @@ import { useNotebookStore } from "@/lib/store/useNotebook";
 import { Button } from "@/components/ui/button";
 import { FlashCard } from "@/features/notebook/notebook.schema"; 
 import { ArrowLeft, ArrowRight } from "lucide-react"; 
-import { Loader2 } from "lucide-react";
+
 import { FlashcardSkeleton } from "./FlashcardSkeleton";
 
 interface FlashcardViewerProps {
@@ -26,7 +26,7 @@ export function FlashcardViewer({
   const setStudioView = useNotebookStore((state) => state.setStudioView);
 
 
-  const isFetching = useNotebookStore((state) => state.generateFlashCards)
+
   // --- Reset viewer state if flashcards prop changes (e.g., new generation) ---
   useEffect(() => {
     setCurrentCardIndex(0);

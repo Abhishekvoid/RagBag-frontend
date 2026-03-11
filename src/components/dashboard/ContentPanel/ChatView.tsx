@@ -2,7 +2,7 @@
 
 import ReactMarkdown from "react-markdown";
 import { useState, useRef, useEffect } from "react";
-import { useNotebookStore, Chapter, Message } from "@/lib/store/useNotebook";
+import { useNotebookStore, Chapter } from "@/lib/store/useNotebook";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";

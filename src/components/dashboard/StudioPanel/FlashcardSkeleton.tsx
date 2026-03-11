@@ -1,5 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
+
 
 export function FlashcardSkeleton() {
   return (

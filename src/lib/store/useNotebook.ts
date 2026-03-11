@@ -7,7 +7,6 @@ import { notebookApi } from "@/features/notebook/notebook.api";
 import {
   SubjectInput,
   ChapterInput,
-  DocumentDTO,
   SubjectDTO,
   ChapterDTO,
   RagChatMessageDTO,
@@ -15,7 +14,7 @@ import {
   GeneratedQuestion,
   FlashCard,
   FlashCardUpdate,
-  chapterResponseSchema,
+
 } from "@/features/notebook/notebook.schema";
 import { v4 as uuidv4 } from "uuid";
 
