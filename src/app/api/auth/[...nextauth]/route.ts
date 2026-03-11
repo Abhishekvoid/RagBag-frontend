@@ -1,7 +1,7 @@
 import NextAuth, { AuthOptions } from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
 import { notebookApi } from "@/features/notebook/notebook.api";
-import axios from "axios";
+
 
 const authOptions: AuthOptions = {
   providers: [

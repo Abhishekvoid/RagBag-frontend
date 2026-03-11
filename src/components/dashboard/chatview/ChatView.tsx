@@ -5,57 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 import ReactMarkdown from "react-markdown";
-import { useNotebookStore, Chapter, Message } from "@/lib/store/useNotebook";
+import { useNotebookStore, Chapter } from "@/lib/store/useNotebook";
 import { UserIcon, AiIcon } from "./Icons";
 import { cn } from "@/lib/utils";
 
-const ChatMessage = ({ message }: { message: Message }) => {
-  const isUser = message.sender === "user";
 
-  // ADD THIS DEBUG LINE
-  console.log(
-    "Raw message text with line breaks:",
-    JSON.stringify(message.text)
-  );
-
-  return (
-    <div className={`flex items-start gap-4 ${isUser ? "justify-end" : ""}`}>
-      <div
-        className={`shrink-0 size-8 rounded-full flex items-center justify-center ${
-          isUser ? "bg-primary/10 text-primary" : "bg-muted"
-        }`}
-      >
-        {isUser ? (
-          <UserIcon className="size-5" />
-        ) : (
-          <AiIcon className="size-5" />
-        )}
-      </div>
-      <div
-        className={`p-4 rounded-lg max-w-xl ${
-          isUser ? "bg-primary text-primary-foreground" : "bg-muted"
-        }`}
-      >
-        <p className="font-bold text-sm mb-1">
-          {isUser ? "You" : "StudyWise AI"}
-        </p>
-
-        {/* ADD THIS DEBUG SECTION TEMPORARILY */}
-        <div className="mb-2 text-xs bg-red-100 p-1">
-          <strong>Debug - Character count:</strong> {message.text.length}
-          <br />
-          <strong>Contains \\n\\n:</strong>{" "}
-          {message.text.includes("\n\n") ? "YES" : "NO"}
-          <br />
-          <strong>First 100 chars:</strong>{" "}
-          {JSON.stringify(message.text.substring(0, 100))}
-        </div>
-
-        <p className="leading-relaxed whitespace-pre-wrap">{message.text}</p>
-      </div>
-    </div>
-  );
-};
 
 interface ChatViewProps {
   chapter: Chapter;

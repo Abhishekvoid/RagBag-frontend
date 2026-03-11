@@ -19,10 +19,9 @@ import { loginSchema, type LoginInput } from "@/features/auth/auth.schemas";
 import api from "@/lib/axios";
 
 
-import { signIn } from "next-auth/react";
-import googleAuthIcon from "@/components/icons/googleauth.png";
+// import googleAuthIcon from "@/components/icons/googleauth.png";
 import { setTokens, setUser } from "@/utils/storage";
-import { AArrowUp } from "lucide-react";
+
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -186,7 +185,7 @@ export function LoginForm() {
         <div className="grid grid-cols-2 gap-4">
           <form action="/api/auth/signin/google" method="post">
             <Button type="submit" variant="outline" className="w-full">
-              <img src={googleAuthIcon.src} alt="Google" className="mr-2 h-4 w-4" />
+              {/* <img src={googleAuthIcon.src} alt="Google" className="mr-2 h-4 w-4" /> */}
               Google
             </Button>
           </form>

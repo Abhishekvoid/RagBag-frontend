@@ -3,7 +3,7 @@
 import React, { useState, useRef } from "react";
 import { notebookApi } from "@/features/notebook/notebook.api";
 import { Chapter, useNotebookStore } from "@/lib/store/useNotebook";
-import { UploadCloud, FileText, X, Loader2, ArrowUp, BrainCircuit } from "lucide-react";
+import { UploadCloud, FileText, X, Loader2, ArrowUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +15,7 @@ export interface AddSourceViewProps {
 export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [isProcessing, setIsProcessing] = useState(false);
+
   const [isDragActive, setIsDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,8 +43,7 @@ export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
       await notebookApi.uploadDocument(formData);
       console.log("✅ Upload success");
       
-      let retries = 0;
-      const  maxRetries = 10;
+      
 
       const checkStatus = async () => {
 
@@ -62,13 +61,7 @@ export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
     }
   };
 
-  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      handleFileSelect(e.target.files[0]);
-    }
-    // Fix: Reset input so same file can be selected again
-    e.target.value = "";
-  };
+
 
   const onDragOver = (e: React.DragEvent) => {
     e.preventDefault();
