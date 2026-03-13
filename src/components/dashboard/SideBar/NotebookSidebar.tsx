@@ -14,6 +14,9 @@ import { SidebarSkeleton } from "./SidebarSkeleton";
 
 import { SearchIcon, CollectionIcon, SparkleIcon } from "../Icons";
 
+const WS_BASE =
+  process.env.NEXT_PUBLIC_WS_URL ||
+  "wss://ragbag-backend-production.up.railway.app";
 export function NotebookSidebar() {
   const {
     subjects,
@@ -45,9 +48,7 @@ export function NotebookSidebar() {
     const authToken = getAccessToken(); 
     if (!authToken) return;
 
-    const ws = new WebSocket(
-      `ws://localhost:8000/ws/notifications/?token=${authToken}`
-    );
+    const ws = new WebSocket(`${WS_BASE}/ws/notifications/?token=${authToken}`);
 
     ws.onmessage = (event) => {
       try {
