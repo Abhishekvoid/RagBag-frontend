@@ -14,7 +14,6 @@ import {
   GeneratedQuestion,
   FlashCard,
   FlashCardUpdate,
-
 } from "@/features/notebook/notebook.schema";
 import { v4 as uuidv4 } from "uuid";
 
@@ -385,15 +384,30 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
           });
         } catch (err) {
           console.error("NotebookStore Error - sendMessage:", err);
+
+          let messageText = "Sorry, I ran into an issue.";
+
+          if (err instanceof Error) {
+            // 🚀 THIS IS KEY
+            if (err.message.includes("not ready")) {
+              messageText =
+                "⏳ Your document is still processing. Please wait a few seconds...";
+            } else {
+              messageText = err.message;
+            }
+          }
+
           const errorMessage: Message = {
             id: uuidv4(),
             sender: "ai",
-            text: "Sorry, I ran into an issue. Please try again.",
+            text: messageText,
             error: true,
           };
+
           set((state) => {
             const currentChapter = findChapter(state, activeChapter.id);
             if (!currentChapter) return state;
+
             return updateChapterState(state, activeChapter.id, {
               messages: [...currentChapter.messages, errorMessage],
             });
