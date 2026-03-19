@@ -16,6 +16,9 @@ import {
   FlashCardUpdate,
 } from "@/features/notebook/notebook.schema";
 import { v4 as uuidv4 } from "uuid";
+import { getAccessToken } from "@/utils/storage";
+
+let ws: WebSocket | null = null;
 
 // ============ TYPES =============
 
@@ -68,6 +71,7 @@ type NotebookActions = {
   addChapter: (data: ChapterInput) => Promise<void>;
   setActiveChapter: (chapterId: string | null) => void;
   getActiveChapter: () => Chapter | null;
+  initWebSocket: () => void;
   sendMessage: (text: string) => Promise<void>;
   loadChatHistory: (chapterId: string) => Promise<void>;
   loadMoreMessages: (chapterId: string) => Promise<void>;
@@ -79,6 +83,10 @@ type NotebookActions = {
   setStudioView: (view: "controls" | "questions" | "flashcards") => void;
 };
 
+const WS_BASE =
+  process.env.NEXT_PUBLIC_WS_URL ||
+  "wss://ragbag-backend-production.up.railway.app";
+
 // ==== STORE ===========
 export const useNotebookStore = create<NotebookState & NotebookActions>()(
   devtools(
@@ -89,7 +97,41 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
       isLoading: false,
       error: null,
       currentStudioView: "controls",
+      initWebSocket: () => {
+        if (ws) return; 
 
+        const token = getAccessToken(); 
+        if (!token) return;
+
+        ws = new WebSocket(`${WS_BASE}/ws/notifications/?token=${token}`);
+
+        ws.onopen = () => {
+          console.log("WS Connected");
+        };
+
+        ws.onmessage = async (event) => {
+          try {
+            const data = JSON.parse(event.data);
+
+            console.log("WS EVENT:", data);
+
+            if (
+              data.message === "notebook_updated" ||
+              data.message === "document_ready"
+            ) {
+              await get().fetchSubjects(); 
+            }
+          } catch (e) {
+            console.error("WS parse error", e);
+          }
+        };
+
+        ws.onclose = () => {
+          console.log("WS Disconnected → retrying...");
+          ws = null;
+          setTimeout(() => get().initWebSocket(), 3000);
+        };
+      },
       // --- DATA FETCHING ACTIONS ---
       fetchSubjects: async () => {
         set({ isLoading: true, error: null });

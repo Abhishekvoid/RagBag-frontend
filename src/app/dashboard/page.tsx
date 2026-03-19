@@ -7,9 +7,15 @@ import { Header } from "@/components/dashboard/Header/Header";
 import { NotebookSidebar } from "@/components/dashboard/SideBar/NotebookSidebar";
 import { ContentPanel } from "@/components/dashboard/ContentPanel/ContentPanel";
 import { StudioPanel } from "@/components/dashboard/StudioPanel/StudioPanel";
+import { useEffect } from "react";
+import { useNotebookStore } from "@/lib/store/useNotebook";
 
 
 export default function DashboardPage() {
+
+  useEffect(() => {
+    useNotebookStore.getState().initWebSocket();
+  }, []);
   return (
     <div className="h-screen flex flex-col bg-background text-foreground">
       <Header />

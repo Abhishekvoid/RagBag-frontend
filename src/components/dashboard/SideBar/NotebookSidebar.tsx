@@ -9,14 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { NewSubjectModal } from "./Subject/NewSubjectModal";
 import { NewChapterModal } from "./Chapter/NewChapterModal";
-import { getAccessToken } from "@/utils/storage";
+// import { getAccessToken } from "@/utils/storage";
 import { SidebarSkeleton } from "./SidebarSkeleton"; 
 
 import { SearchIcon, CollectionIcon, SparkleIcon } from "../Icons";
 
-const WS_BASE =
-  process.env.NEXT_PUBLIC_WS_URL ||
-  "wss://ragbag-backend-production.up.railway.app";
+// const WS_BASE =
+//   process.env.NEXT_PUBLIC_WS_URL ||
+//   "wss://ragbag-backend-production.up.railway.app";
 export function NotebookSidebar() {
   const {
     subjects,
@@ -44,24 +44,24 @@ export function NotebookSidebar() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // WebSocket logic
-  useEffect(() => {
-    const authToken = getAccessToken(); 
-    if (!authToken) return;
+  // useEffect(() => {
+  //   const authToken = getAccessToken(); 
+  //   if (!authToken) return;
 
-    const ws = new WebSocket(`${WS_BASE}/ws/notifications/?token=${authToken}`);
+  //   const ws = new WebSocket(`${WS_BASE}/ws/notifications/?token=${authToken}`);
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.message === "notebook_updated") {
-          fetchSubjects(); 
-        }
-      } catch (e) {
-        console.error("WebSocket error", e);
-      }
-    };
-    return () => ws.close();
-  }, [fetchSubjects]);
+  //   ws.onmessage = (event) => {
+  //     try {
+  //       const data = JSON.parse(event.data);
+  //       if (data.message === "notebook_updated") {
+  //         fetchSubjects(); 
+  //       }
+  //     } catch (e) {
+  //       console.error("WebSocket error", e);
+  //     }
+  //   };
+  //   return () => ws.close();
+  // }, [fetchSubjects]);
 
   // Filter logic
   const filteredSubjects = useMemo(() => {
@@ -112,24 +112,20 @@ export function NotebookSidebar() {
     setIsChapterModalOpen(true);
   };
 
-  // --- FIX: Safe Data Extraction ---
-  // We extract these variables here so we don't need confusing optional chaining in the JSX
+ 
   const uncategorizedSubject = filteredSubjects.find((s) => s.id === "uncategorized-chapters");
-  // If undefined, default to empty array. No '!' needed.
   const uncategorizedChapters = uncategorizedSubject?.chapters || [];
-  
   const regularSubjects = filteredSubjects.filter(s => s.id !== "uncategorized-chapters");
 
   // --- RENDER ---
-
   return (
     <aside className="col-span-3 bg-card rounded-lg p-4 flex flex-col h-full overflow-y-auto border border-border">
-      {/* Header */}
+  
       <div className="flex items-center gap-2 mb-4">
         <h2 className="text-xl font-bold text-card-foreground tracking-tight">My Notebook</h2>
       </div>
 
-      {/* Controls */}
+     
       <div className="flex gap-2 mb-4">
         <NewSubjectModal />
         <Button

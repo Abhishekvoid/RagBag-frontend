@@ -38,7 +38,7 @@ interface NewChapterModalProps {
 }
 
 export function NewChapterModal({ isOpen, onOpenChange, defaultSubjectId }: NewChapterModalProps) {
-  const { subjects, addChapter } = useNotebookStore();
+  const { subjects, addChapter, fetchSubjects  } = useNotebookStore();
 
   const form = useForm<ChapterInput>({
     resolver: zodResolver(chapterInputSchema),
@@ -57,6 +57,7 @@ export function NewChapterModal({ isOpen, onOpenChange, defaultSubjectId }: NewC
   const onSubmit = async (values: ChapterInput) => {
     try {
       await addChapter(values);
+      await fetchSubjects();
       form.reset();
       onOpenChange(false);
     } catch (error) {

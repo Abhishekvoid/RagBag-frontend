@@ -44,7 +44,7 @@ export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
       console.log("✅ Upload success");
       
       
-
+      await fetchSubjects();
       setIsUploading(false);
       
       
