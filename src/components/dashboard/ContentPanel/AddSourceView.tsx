@@ -45,14 +45,9 @@ export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
       
       
 
-      const checkStatus = async () => {
-
-        await fetchSubjects();
-        onSourceAdded();
-        setIsUploading(false);
-      };
+      setIsUploading(false);
       
-      setTimeout(checkStatus, 2000);
+      
     } catch (err) {
       console.error("❌ Upload failed:", err);
       setError("Upload failed. Please try a valid PDF or DOCX.");

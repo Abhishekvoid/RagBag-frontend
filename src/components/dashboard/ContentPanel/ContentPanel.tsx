@@ -1,13 +1,12 @@
-
 // "use client";
 
-// import { useNotebookStore, Chapter } from "@/lib/store/useNotebook"; 
+// import { useNotebookStore, Chapter } from "@/lib/store/useNotebook";
 // import { ChatView } from "./ChatView";
 // import { AddSourceView } from "./AddSourceView";
 // import { ProcessingState } from "./ProcessingState";
 // import { useWebSocket } from "@/hooks/useWebSocket"
 // export function ContentPanel() {
-  
+
 //   const activeChapter = useNotebookStore((state) => {
 //     if (!state.activeChapterId) {
 //       return null;
@@ -18,13 +17,12 @@
 //         .find((c) => c.id === state.activeChapterId) || null
 //     );
 //   });
-  
-  
+
 //   const fetchSubjects = useNotebookStore((state) => state.fetchSubjects);
 //   const { socket } = useWebSocket();
-  
+
 //   if (!activeChapter) {
-    
+
 //     return (
 //         <section className="col-span-5 bg-card rounded-lg flex flex-col h-full items-center justify-center border border-border">
 //           <AddSourceView onSourceAdded={fetchSubjects} />
@@ -54,19 +52,23 @@
 //     );
 //   }
 
-
 "use client";
 
 import { useEffect, useState } from "react"; // Import useState
 import { useNotebookStore } from "@/lib/store/useNotebook";
 import { ChatView } from "./ChatView";
 import { AddSourceView } from "./AddSourceView";
-import { useWebSocket } from "@/hooks/useWebSocket"; 
+import { useWebSocket } from "@/hooks/useWebSocket";
+import { Loader2 } from "lucide-react";
 
 export function ContentPanel() {
   const activeChapter = useNotebookStore((state) => {
     if (!state.activeChapterId) return null;
-    return state.subjects.flatMap((s) => s.chapters).find((c) => c.id === state.activeChapterId) || null;
+    return (
+      state.subjects
+        .flatMap((s) => s.chapters)
+        .find((c) => c.id === state.activeChapterId) || null
+    );
   });
 
   const fetchSubjects = useNotebookStore((state) => state.fetchSubjects);
@@ -82,14 +84,17 @@ export function ContentPanel() {
     const handleMessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.type === "send_notification" && (data.message === "notebook_updated" || data.message === "document_ready")) {
-          console.log("🔔 WebSocket notification received. Refreshing data and UI.");
-          
-          // 1. Refresh the data in the store
-          fetchSubjects();
-          
-          // 2. Force current view to reset. This kills the 'isProcessing' state.
-          setViewKey(prev => prev + 1);
+        if (
+          data.type === "send_notification" &&
+          (data.message === "notebook_updated" ||
+            data.message === "document_ready")
+        ) {
+          console.log("🔔 WebSocket notification received.");
+
+          (async () => {
+            await fetchSubjects(); // ✅ WAIT for data
+            setViewKey((prev) => prev + 1); // ✅ THEN re-render
+          })();
         }
       } catch (error) {
         console.error("Error parsing WebSocket message:", error);
@@ -104,30 +109,48 @@ export function ContentPanel() {
   // CASE 1: No chapter selected. Show Add Source view.
   if (!activeChapter) {
     return (
-        // Add the key here. When viewKey changes, this entire section re-mounts.
-        <section key={`add-source-${viewKey}`} className="col-span-5 bg-card rounded-lg flex flex-col h-full items-center justify-center border border-border">
-          <AddSourceView onSourceAdded={fetchSubjects} />
-        </section>
+      // Add the key here. When viewKey changes, this entire section re-mounts.
+      <section
+        key={`add-source-${viewKey}`}
+        className="col-span-5 bg-card rounded-lg flex flex-col h-full items-center justify-center border border-border"
+      >
+        <AddSourceView onSourceAdded={fetchSubjects} />
+      </section>
     );
   }
 
   // CASE 2: Chapter selected. Check if ready.
-  const isReadyForChat = activeChapter.documents && activeChapter.documents.length > 0 && activeChapter.documents.some((doc) => doc.status === "COMPLETED");
+  const isReadyForChat =
+    activeChapter.documents &&
+    activeChapter.documents.length > 0 &&
+    activeChapter.documents.some((doc) => doc.status === "COMPLETED");
 
   if (isReadyForChat) {
     return (
-        // Add key here too, just in case updates happen while chatting
-        <section key={`chat-${viewKey}`} className="col-span-5 bg-card rounded-lg flex flex-col h-full overflow-hidden border border-border">
-          <ChatView chapter={activeChapter} />
-        </section>
+      // Add key here too, just in case updates happen while chatting
+      <section
+        key={`chat-${viewKey}`}
+        className="col-span-5 bg-card rounded-lg flex flex-col h-full overflow-hidden border border-border"
+      >
+        <ChatView chapter={activeChapter} />
+      </section>
     );
   } else {
-    // CASE 3: Chapter selected but processing. Show Add Source (contextual).
-    return (
-        // Add key here too
-        <section key={`add-source-context-${viewKey}`} className="col-span-5 bg-card rounded-lg flex flex-col h-full items-center justify-center border border-border">
-          <AddSourceView chapter={activeChapter} onSourceAdded={fetchSubjects} />
-        </section>
-    );
-  }
+  return (
+    <section
+      key={`processing-${viewKey}`}
+      className="col-span-5 bg-card rounded-lg flex flex-col h-full items-center justify-center border border-border"
+    >
+      <div className="flex flex-col items-center justify-center gap-4">
+        <Loader2 className="animate-spin w-8 h-8 text-primary" />
+        <p className="text-sm text-muted-foreground">
+          Processing your document...
+        </p>
+        <p className="text-xs text-muted-foreground/60">
+          This usually takes a few seconds
+        </p>
+      </div>
+    </section>
+  );
+}
 }
