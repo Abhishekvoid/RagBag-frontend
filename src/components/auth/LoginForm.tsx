@@ -175,27 +175,27 @@ export function LoginForm() {
           <div className="absolute inset-0 flex items-center">
             <span className="w-full border-t" />
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
+          {/* <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-background px-2 text-muted-foreground">
               Or continue with
             </span>
-          </div>
+          </div> */}
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        {/*} <div className="grid grid-cols-2 gap-4">
           <form action="/api/auth/signin/google" method="post">
             <Button type="submit" variant="outline" className="w-full">
-              {/* <img src={googleAuthIcon.src} alt="Google" className="mr-2 h-4 w-4" /> */}
+               <img src={googleAuthIcon.src} alt="Google" className="mr-2 h-4 w-4" /> 
               Google
             </Button>
           </form>
           <form action="/api/auth/signin/github" method="post">
-            {/* <Button type="submit" variant="outline" className="w-full">
+            <Button type="submit" variant="outline" className="w-full">
               <Icons.gitHub className="mr-2 h-4 w-4" />
               GitHub
-            </Button> */}
-          </form>
-        </div>
+            </Button> 
+          </form> 
+        </div> */}
       </CardContent>
     </Card>
   );

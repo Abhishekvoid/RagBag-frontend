@@ -181,15 +181,20 @@ export function ChatView({ chapter }: ChatViewProps) {
 
             {/* Loading indicator for when the AI is responding */}
             {isAiResponding && (
-              <div className="flex items-start gap-4 animate-pulse">
-                <div className="p-2 rounded-full bg-muted text-muted-foreground">
+              <div className="flex items-start gap-4">
+                <div className="p-2 rounded-full bg-muted text-muted-foreground shrink-0">
                   <BotIcon />
                 </div>
-                <div className="p-3 px-4 rounded-2xl rounded-tl-none bg-muted/30 text-muted-foreground text-sm flex items-center gap-1">
-                  <span>Thinking</span>
-                  <span className="animate-bounce delay-75">.</span>
-                  <span className="animate-bounce delay-150">.</span>
-                  <span className="animate-bounce delay-200">.</span>
+                <div className="p-3 px-4 rounded-2xl rounded-tl-none bg-card border border-border text-muted-foreground text-sm flex items-center gap-2">
+                  <div className="flex gap-1">
+                    {[0, 150, 300].map((delay) => (
+                      <span
+                        key={delay}
+                        className="w-1.5 h-1.5 rounded-full bg-muted-foreground/50 animate-bounce"
+                        style={{ animationDelay: `${delay}ms` }}
+                      />
+                    ))}
+                  </div>
                 </div>
               </div>
             )}
