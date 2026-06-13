@@ -1,6 +1,4 @@
 export const themes = [
-  { name: "light", color: "#ffffff" },
-  { name: "dark", color: "#0a0a0a" },
-  { name: "forest", color: "#1b3a2a" },
-  { name: "pastel", color: "#ffe6e6" },
+  { name: "dark",  color: "#1a1410" },  // warm espresso
+  { name: "light", color: "#faf8f5" },  // warm paper
 ];

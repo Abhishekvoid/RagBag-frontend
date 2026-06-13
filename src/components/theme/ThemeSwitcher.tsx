@@ -1,36 +1,27 @@
-// // src/components/theme/ThemeSwitcher.tsx
-// "use client";
+"use client";
 
-// import { useTheme } from "../theme-provider";
-// import { ThemeName } from "./theme";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
+import { Sun, Moon } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-// export function ThemeSwitcher() {
-//   const { theme, setTheme, toggleVariant, variant } = useTheme();
+export function ThemeSwitcher() {
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-//   const handleSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
-//     setTheme(e.target.value as ThemeName);
-//   };
+  if (!mounted) return <div className="size-9" />;
 
-//   return (
-//     <div className="flex items-center gap-2">
-//       {/* Dropdown for selecting theme */}
-//       <select
-//         value={theme}
-//         onChange={handleSelect}
-//         className="border rounded p-1 bg-background text-foreground"
-//       >
-//         <option value="cosmic-night">Cosmic Night</option>
-//         <option value="notebook">Notebook</option>
-//         <option value="vintage-paper">Vintage Paper</option>
-//       </select>
-
-//       {/* Toggle for light/dark */}
-//       <button
-//         onClick={toggleVariant}
-//         className="px-2 py-1 rounded bg-primary text-primary-foreground"
-//       >
-//         {variant === "light" ? "🌞 Light" : "🌙 Dark"}
-//       </button>
-//     </div>
-//   );
-// }
+  const isDark = resolvedTheme === "dark";
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      aria-label="Toggle theme"
+      className="active-press"
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+    >
+      {isDark ? <Moon size={18} /> : <Sun size={18} />}
+    </Button>
+  );
+}
