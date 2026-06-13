@@ -1,39 +1,6 @@
 import React from 'react';
-
-// ==== SVG ICONS ====
-const FolderIcon = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-       fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-       strokeLinejoin="round" className={className}>
-    <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path>
-  </svg>
-);
-
-const FileIcon = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-       fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-       strokeLinejoin="round" className={className}>
-    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
-    <polyline points="14 2 14 8 20 8"></polyline>
-  </svg>
-);
-
-const ChevronRight = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-       fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-       strokeLinejoin="round" className={className}>
-    <path d="m9 18 6-6-6-6" />
-  </svg>
-);
-
-const PlusIcon = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-       fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"
-       strokeLinejoin="round" className={className}>
-    <line x1="12" y1="5" x2="12" y2="19"></line>
-    <line x1="5" y1="12" x2="19" y2="12"></line>
-  </svg>
-);
+import { ChevronRight, ChevronDown, Folder, Plus } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 // ==== CHAPTER ITEM (Local Import for Subject's list) ====
 // Note: We usually use the separate component, but if you keep it here for self-containment:
@@ -53,13 +20,11 @@ const ChapterItem = React.memo(function ChapterItem({ chapter, isActive, onSelec
         e.stopPropagation(); // Prevent bubbling if needed
         onSelect();
       }}
-      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all duration-200 ${
-        isActive 
-          ? "gradient-active shadow-sm" 
-          : "gradient-hover text-muted-foreground hover:text-foreground hover:pl-3"
-      }`}
+      className={cn(
+        "group flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-sm gradient-hover active-press cursor-pointer",
+        isActive && "gradient-active"
+      )}
     >
-      <FileIcon className={`flex-shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
       <span className="truncate">{chapter.name}</span>
     </li>
   );
@@ -110,16 +75,17 @@ export const SubjectItem = React.memo(function SubjectItem({
           console.log(`📂 Subject toggled: ${subject.name}`);
           onToggle();
         }}
-        // Updated: Use gradient-hover here for the folder row
-        className="group flex items-center w-full gap-2 p-2 rounded-md gradient-hover text-left cursor-pointer transition-all duration-200"
+        className={cn(
+          "group flex items-center w-full gap-2 gradient-hover rounded-md px-2 py-1.5 text-sm text-left cursor-pointer transition-all duration-200"
+        )}
       >
         <div className="flex items-center gap-2 flex-grow">
-          <ChevronRight
-            className={`flex-shrink-0 transform transition-all duration-200 text-muted-foreground ${
-              isExpanded ? 'rotate-90 opacity-100 text-foreground' : 'rotate-0 opacity-70 group-hover:opacity-100'
-            }`}
-          />
-          <FolderIcon className="flex-shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
+          {isExpanded ? (
+            <ChevronDown size={14} className="flex-shrink-0 text-muted-foreground opacity-100 text-foreground" />
+          ) : (
+            <ChevronRight size={14} className="flex-shrink-0 text-muted-foreground opacity-70 group-hover:opacity-100" />
+          )}
+          <Folder size={16} className="flex-shrink-0 text-muted-foreground group-hover:text-primary transition-colors" />
           <span className="font-semibold text-card-foreground truncate group-hover:text-primary transition-colors">{subject.name}</span>
         </div>
 
@@ -131,13 +97,13 @@ export const SubjectItem = React.memo(function SubjectItem({
           }}
           className="ml-auto p-1 rounded-md hover:bg-background/50 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
         >
-          <PlusIcon className="text-muted-foreground hover:text-primary" />
+          <Plus size={16} className="text-muted-foreground hover:text-primary" />
         </button>
       </div>
 
       {/* Chapters */}
       {isExpanded && (
-        <ul className="pl-4 mt-1 space-y-1 border-l border-border/40 ml-3">
+        <ul className="pl-4 mt-1 flex flex-col gap-0.5 border-l border-border/40 ml-3">
           {subject.chapters.length === 0 ? (
             <li className="text-sm text-muted-foreground pl-4 py-1 italic opacity-50">No chapters yet</li>
           ) : (
