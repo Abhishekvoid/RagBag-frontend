@@ -2,33 +2,42 @@
 
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { clearTokens } from "@/utils/storage"; 
-import { getUser } from "@/utils/storage";
-
+import { clearTokens, getUser } from "@/utils/storage";
+import { ThemeSwitcher } from "@/components/theme/ThemeSwitcher";
+import { BookOpen, LogOut } from "lucide-react";
 
 export function Header() {
   const router = useRouter();
-
-  const user = getUser(); 
+  const user = getUser();
 
   const handleLogout = () => {
     clearTokens();
     router.push("/auth/login");
   };
 
-  // Added 'glass' class and 'sticky top-0' to make it float
   return (
-    <header className="glass sticky top-0 z-50 flex items-center justify-between p-3 shadow-sm">
-      <div className="flex items-center gap-3 pl-2">
-        <div className="bg-primary/10 p-1.5 rounded-md">
-          <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path></svg>
-        </div>
-        <h1 className="text-lg font-bold text-foreground tracking-tight">StudyWise</h1>
+    <header className="glass sticky top-0 z-50 flex items-center justify-between border-b px-4 h-12">
+      <div className="flex items-center gap-2">
+        <BookOpen size={18} className="text-primary" />
+        <span className="text-h3 font-semibold tracking-tight">StudyWise</span>
+        <span className="font-mono text-micro text-muted-foreground ml-1">
+          {"// tutor"}
+        </span>
       </div>
-       {/* <ThemeSwitcher /> */}
-      <div className="flex items-center gap-4">
-        <span className="text-sm text-muted-foreground hidden sm:inline">Welcome, {user?.name || "User"}</span>
-        <Button onClick={handleLogout} variant="ghost" size="sm" className="hover:bg-destructive/10 hover:text-destructive">Logout</Button>
+      <div className="flex items-center gap-1">
+        <span className="text-sm text-muted-foreground hidden sm:inline mr-2">
+          {user?.name || "User"}
+        </span>
+        <ThemeSwitcher />
+        <Button
+          onClick={handleLogout}
+          variant="ghost"
+          size="icon"
+          aria-label="Log out"
+          className="active-press text-muted-foreground hover:text-foreground"
+        >
+          <LogOut size={18} />
+        </Button>
       </div>
     </header>
   );
