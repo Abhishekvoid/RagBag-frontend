@@ -26,7 +26,20 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
   --radius: var(--radius);
-  
+
+  /* Type ramp (even steps, fixed line-heights) */
+  --text-display: 3rem;        --text-display--line-height: 1.05;  --text-display--letter-spacing: -0.02em;
+  --text-h1: 1.875rem;         --text-h1--line-height: 1.15;       --text-h1--letter-spacing: -0.01em;
+  --text-h2: 1.375rem;         --text-h2--line-height: 1.25;
+  --text-h3: 1.125rem;         --text-h3--line-height: 1.35;
+  --text-body: 0.9375rem;      --text-body--line-height: 1.7;
+  --text-sm: 0.8125rem;        --text-sm--line-height: 1.5;
+  --text-meta: 0.75rem;        --text-meta--line-height: 1.4;
+  --text-micro: 0.6875rem;     --text-micro--line-height: 1.4;
+
+  /* Motion */
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+
   /* Shadow Tokens */
   --shadow-2xl: var(--shadow-2xl);
   --shadow-xl: var(--shadow-xl);
@@ -122,24 +135,31 @@
 
 /* --- UX POLISH UTILITIES --- */
 @layer utilities {
-  /* Glassmorphism: Use on Headers/Modals */
   .glass {
-    @apply bg-background/60 backdrop-blur-md border-b border-border/50 supports-[backdrop-filter]:bg-background/60;
+    @apply bg-background/70 backdrop-blur-md border-border/60 supports-[backdrop-filter]:bg-background/60;
   }
 
-  /* Gradient Active State: Use on Sidebar Active Items (Stronger) */
+  /* Active item: marigold left edge + subtle warm wash (NOT full border) */
   .gradient-active {
-    @apply bg-gradient-to-r from-primary/15 to-transparent border-l-2 border-primary text-primary font-medium;
+    @apply bg-primary/10 border-l-2 border-primary text-foreground font-medium;
   }
 
-  /* Gradient Hover State: Use on Sidebar Items (Subtle) */
-  /* This creates a soft wash from the left */
   .gradient-hover {
-    @apply hover:bg-gradient-to-r hover:from-primary/10 hover:to-transparent transition-all duration-200 ease-out;
+    @apply hover:bg-accent/60 transition-colors duration-150 ease-out;
   }
-  
-  /* Micro-interaction: Click Scale */
+
   .active-press {
-    @apply active:scale-95 transition-transform duration-100;
+    @apply active:scale-[0.97] transition-transform duration-100;
+  }
+
+  /* Motion defaults */
+  .motion-base { transition: all 180ms var(--ease-out-soft); }
+  .motion-fast { transition: all 120ms var(--ease-out-soft); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }
