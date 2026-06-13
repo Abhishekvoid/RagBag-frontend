@@ -25,7 +25,7 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius: 0.5rem;
+  --radius: var(--radius);
   
   /* Shadow Tokens */
   --shadow-2xl: var(--shadow-2xl);
