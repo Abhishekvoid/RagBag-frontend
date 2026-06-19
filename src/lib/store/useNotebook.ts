@@ -16,7 +16,7 @@ import {
   FlashCardUpdate,
 } from "@/features/notebook/notebook.schema";
 import { v4 as uuidv4 } from "uuid";
-import { getAccessToken } from "@/utils/storage";
+import { getAccessToken } from "@/lib/authToken";
 
 let ws: WebSocket | null = null;
 
@@ -563,7 +563,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
         }
       },
 
-      deleteFlashcards: async (flashcardId: string) => {
+      deleteFlashCards: async (flashcardId: string) => {
         const activeChapterId = get().activeChapterId;
         try {
           await notebookApi.deleteFlashCard(flashcardId);
