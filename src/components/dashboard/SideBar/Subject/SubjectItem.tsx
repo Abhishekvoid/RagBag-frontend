@@ -11,12 +11,9 @@ interface ChapterItemProps {
 }
 
 const ChapterItem = React.memo(function ChapterItem({ chapter, isActive, onSelect }: ChapterItemProps) {
-  console.log(`🔹 Rendering Chapter: ${chapter.name} (${chapter.id})`);
-
   return (
     <li
       onClick={(e) => {
-        console.log(`📚 Chapter clicked: ${chapter.name}`);
         e.stopPropagation(); // Prevent bubbling if needed
         onSelect();
       }}
@@ -53,18 +50,8 @@ export const SubjectItem = React.memo(function SubjectItem({
   onSelectChapter,
   onAddChapter,
 }: SubjectItemProps) {
-  console.log(`📁 Rendering Subject: ${subject.name} (${subject.id})`);
-
   if (!Array.isArray(subject.chapters)) {
-    console.error(`❌ subject.chapters is not an array for subject: ${subject.name}`);
     return null;
-  }
-
-  const chapterIds = subject.chapters.map((c) => c.id);
-  const hasDuplicateChapterIds = new Set(chapterIds).size !== chapterIds.length;
-  if (hasDuplicateChapterIds) {
-    const duplicates = chapterIds.filter((id, idx) => chapterIds.indexOf(id) !== idx);
-    console.warn(`⚠️ Duplicate chapter IDs in subject "${subject.name}":`, duplicates);
   }
 
   return (
@@ -72,7 +59,6 @@ export const SubjectItem = React.memo(function SubjectItem({
       {/* Subject Header */}
       <div
         onClick={() => {
-          console.log(`📂 Subject toggled: ${subject.name}`);
           onToggle();
         }}
         className={cn(
@@ -92,7 +78,6 @@ export const SubjectItem = React.memo(function SubjectItem({
         <button
           onClick={(e) => {
             e.stopPropagation(); // Prevent toggle on add
-            console.log(`➕ Add chapter clicked for subject: ${subject.name}`);
             onAddChapter(e);
           }}
           className="ml-auto p-1 rounded-md hover:bg-background/50 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"

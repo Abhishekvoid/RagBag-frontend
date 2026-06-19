@@ -54,10 +54,6 @@ export function RegisterForm() {
   };
 
   const onSubmit = async (data: RegisterInput) => {
-    console.log("🎯 REGISTER FORM SUBMITTED!");
-    console.log("📝 Form data received:", data);
-    console.log("🌐 API URL from env:", process.env.NEXT_PUBLIC_API_URL);
-
     // Transform data to match Django's expected field names
     const djangoData = {
       name: data.name,
@@ -66,31 +62,17 @@ export function RegisterForm() {
       password2: data.password2, // ✅ Correct: uses password2
     };
 
-    console.log("🔄 Transformed data for Django:", djangoData);
-
     setIsLoading(true);
     setError("");
     setSuccess(false);
 
     try {
-      console.log(
-        "🚀 About to make API call to:",
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/register/`
-      );
-
       // ✅ Fixed: Send djangoData instead of data
-      const response = await api.post("/auth/register/", djangoData);
-
-      console.log("✅ Registration API Response received:", response);
-      console.log("📊 Response status:", response.status);
-      console.log("📦 Response data:", response.data);
+      await api.post("/auth/register/", djangoData);
 
       setSuccess(true);
-      console.log("✅ Registration successful, setting success state");
 
-      console.log("⏰ Starting 2-second redirect timer...");
       setTimeout(() => {
-        console.log("🚀 Redirecting to login page...");
         router.push("/auth/login");
       }, 2000);
     } catch (error: unknown) {
@@ -108,7 +90,6 @@ export function RegisterForm() {
       setError(handleApiError(error));
     } finally {
       setIsLoading(false);
-      console.log("🏁 Registration process completed");
     }
   };
 
