@@ -6,8 +6,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: Inter, sans-serif;
-  --font-mono: JetBrains Mono, monospace;
+  --font-sans: var(--font-geist-sans), system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
@@ -25,8 +25,21 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius: 0.5rem;
-  
+  --radius: var(--radius);
+
+  /* Type ramp (even steps, fixed line-heights) */
+  --text-display: 3rem;        --text-display--line-height: 1.05;  --text-display--letter-spacing: -0.02em;
+  --text-h1: 1.875rem;         --text-h1--line-height: 1.15;       --text-h1--letter-spacing: -0.01em;
+  --text-h2: 1.375rem;         --text-h2--line-height: 1.25;
+  --text-h3: 1.125rem;         --text-h3--line-height: 1.35;
+  --text-body: 0.9375rem;      --text-body--line-height: 1.7;
+  --text-sm: 0.8125rem;        --text-sm--line-height: 1.5;
+  --text-meta: 0.75rem;        --text-meta--line-height: 1.4;
+  --text-micro: 0.6875rem;     --text-micro--line-height: 1.4;
+
+  /* Motion */
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
+
   /* Shadow Tokens */
   --shadow-2xl: var(--shadow-2xl);
   --shadow-xl: var(--shadow-xl);
@@ -37,53 +50,51 @@
 }
 
 :root {
-  /* Light Mode - Clean & Minimal */
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.551 0.027 264.364);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.208 0.042 265.755);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.704 0.04 256.788);
-  --radius: 0.5rem;
+  /* Paper — warm light */
+  --background: oklch(0.985 0.006 80);
+  --foreground: oklch(0.22 0.02 60);
+  --card: oklch(0.995 0.004 80);
+  --card-foreground: oklch(0.22 0.02 60);
+  --popover: oklch(0.995 0.004 80);
+  --popover-foreground: oklch(0.22 0.02 60);
+  --primary: oklch(0.70 0.16 65);
+  --primary-foreground: oklch(0.99 0.01 80);
+  --secondary: oklch(0.95 0.008 80);
+  --secondary-foreground: oklch(0.28 0.02 60);
+  --muted: oklch(0.95 0.008 80);
+  --muted-foreground: oklch(0.48 0.02 65);
+  --accent: oklch(0.95 0.012 80);
+  --accent-foreground: oklch(0.28 0.02 60);
+  --destructive: oklch(0.58 0.16 30);
+  --destructive-foreground: oklch(0.99 0.01 80);
+  --border: oklch(0.90 0.008 80);
+  --input: oklch(0.90 0.008 80);
+  --ring: oklch(0.70 0.16 65);
+  --radius: 0.625rem;
 }
 
 .dark {
-  /* Dark Mode - GrowthX Obsidian Style */
-  --background: oklch(0.11 0.01 240); 
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.13 0.015 240);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.13 0.015 240);
-  --popover-foreground: oklch(0.985 0 0);
-  
-  /* Electric Blue Accent */
-  --primary: oklch(0.55 0.2 260); 
-  --primary-foreground: oklch(1 0 0);
-  
-  --secondary: oklch(0.2 0.02 240);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.2 0.02 240);
-  --muted-foreground: oklch(0.65 0.02 240);
-  --accent: oklch(0.2 0.02 240);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.985 0 0);
-  --border: oklch(0.2 0.02 240);
-  --input: oklch(0.2 0.02 240);
-  --ring: oklch(0.55 0.2 260);
+  /* Warm Dark — espresso, brown undertone (NOT blue-black) */
+  --background: oklch(0.16 0.012 60);
+  --foreground: oklch(0.94 0.01 75);
+  --card: oklch(0.19 0.014 60);
+  --card-foreground: oklch(0.94 0.01 75);
+  --popover: oklch(0.22 0.016 60);
+  --popover-foreground: oklch(0.94 0.01 75);
+  --primary: oklch(0.78 0.16 70);
+  --primary-foreground: oklch(0.20 0.03 60);
+  --secondary: oklch(0.24 0.012 60);
+  --secondary-foreground: oklch(0.94 0.01 75);
+  --muted: oklch(0.24 0.012 60);
+  --muted-foreground: oklch(0.68 0.02 70);
+  --accent: oklch(0.24 0.014 60);
+  --accent-foreground: oklch(0.94 0.01 75);
+  --destructive: oklch(0.58 0.16 30);
+  --destructive-foreground: oklch(0.96 0.01 75);
+  --border: oklch(0.28 0.012 60);
+  --input: oklch(0.30 0.012 60);
+  --ring: oklch(0.78 0.16 70);
+  --radius: 0.625rem;
 }
 
 @layer base {
@@ -124,24 +135,31 @@
 
 /* --- UX POLISH UTILITIES --- */
 @layer utilities {
-  /* Glassmorphism: Use on Headers/Modals */
   .glass {
-    @apply bg-background/60 backdrop-blur-md border-b border-border/50 supports-[backdrop-filter]:bg-background/60;
+    @apply bg-background/70 backdrop-blur-md border-border/60 supports-[backdrop-filter]:bg-background/60;
   }
 
-  /* Gradient Active State: Use on Sidebar Active Items (Stronger) */
+  /* Active item: marigold left edge + subtle warm wash (NOT full border) */
   .gradient-active {
-    @apply bg-gradient-to-r from-primary/15 to-transparent border-l-2 border-primary text-primary font-medium;
+    @apply bg-primary/10 border-l-2 border-primary text-foreground font-medium;
   }
 
-  /* Gradient Hover State: Use on Sidebar Items (Subtle) */
-  /* This creates a soft wash from the left */
   .gradient-hover {
-    @apply hover:bg-gradient-to-r hover:from-primary/10 hover:to-transparent transition-all duration-200 ease-out;
+    @apply hover:bg-accent/60 transition-colors duration-150 ease-out;
   }
-  
-  /* Micro-interaction: Click Scale */
+
   .active-press {
-    @apply active:scale-95 transition-transform duration-100;
+    @apply active:scale-[0.97] transition-transform duration-100;
+  }
+
+  /* Motion defaults */
+  .motion-base { transition: all 180ms var(--ease-out-soft); }
+  .motion-fast { transition: all 120ms var(--ease-out-soft); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

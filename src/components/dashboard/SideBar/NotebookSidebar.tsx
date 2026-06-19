@@ -13,6 +13,7 @@ import { NewChapterModal } from "./Chapter/NewChapterModal";
 import { SidebarSkeleton } from "./SidebarSkeleton"; 
 
 import { SearchIcon, CollectionIcon, SparkleIcon } from "../Icons";
+import { Plus } from "lucide-react";
 
 // const WS_BASE =
 //   process.env.NEXT_PUBLIC_WS_URL ||
@@ -119,7 +120,7 @@ export function NotebookSidebar() {
 
   // --- RENDER ---
   return (
-    <aside className="col-span-3 bg-card rounded-lg p-4 flex flex-col h-full overflow-y-auto border border-border">
+    <aside className="flex flex-col h-full bg-background border-r border-border/60 p-4 overflow-y-auto">
   
       <div className="flex items-center gap-2 mb-4">
         <h2 className="text-xl font-bold text-card-foreground tracking-tight">My Notebook</h2>
@@ -138,6 +139,7 @@ export function NotebookSidebar() {
             setActiveChapter(null);
           }}
         >
+          <Plus size={16} />
           New Chapter
         </Button>
       </div>
@@ -164,11 +166,11 @@ export function NotebookSidebar() {
           {/* "Alone Chapters" Section */}
           {uncategorizedChapters.length > 0 && (
             <div className="px-2 pt-2 pb-1">
-              <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
+              <div className="mb-2 flex items-center gap-2">
                 <SparkleIcon />
-                <span>Alone Chapters</span>
+                <span className="font-mono text-micro uppercase tracking-wider text-muted-foreground">Alone Chapters</span>
               </div>
-              <ul className="space-y-1">
+              <ul className="flex flex-col px-2 gap-0.5">
                 {(isUncategorizedExpanded
                   ? uncategorizedChapters
                   : uncategorizedChapters.slice(0, 5)
@@ -197,11 +199,11 @@ export function NotebookSidebar() {
 
           {/* Subjects Section */}
           <div className="px-2 pt-2 pb-1">
-            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase text-muted-foreground tracking-wider">
+            <div className="mb-2 flex items-center gap-2">
               <CollectionIcon />
-              <span>Subjects</span>
+              <span className="font-mono text-micro uppercase tracking-wider text-muted-foreground">Subjects</span>
             </div>
-            <div className="space-y-1">
+            <div className="flex flex-col px-2 gap-0.5">
               {regularSubjects.length > 0 ? (
                 regularSubjects.map((subject) => (
                   <SubjectItem

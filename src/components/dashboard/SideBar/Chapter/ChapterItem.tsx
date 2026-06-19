@@ -1,13 +1,5 @@
 import React from 'react';
-
-const FileIcon = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
-       fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-       strokeLinejoin="round" className={className}>
-    <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"></path>
-    <polyline points="14 2 14 8 20 8"></polyline>
-  </svg>
-);
+import { cn } from '@/lib/utils';
 
 interface ChapterItemProps {
   chapter: { id: string; name: string };
@@ -18,14 +10,12 @@ export const ChapterItem = React.memo(function ChapterItem({ chapter, isActive, 
   return (
     <li
       onClick={onSelect}
-      // Applied 'gradient-active' when isActive is true
-      className={`flex items-center gap-2 p-2 rounded-md cursor-pointer transition-all duration-200 ${
-        isActive 
-          ? "gradient-active shadow-sm" 
-          : "gradient-hover text-muted-foreground hover:text-foreground hover:pl-3" 
-      }`}
+      className={cn(
+        "group flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-sm gradient-hover active-press cursor-pointer",
+        isActive && "gradient-active"
+      )}
     >
-      <FileIcon className={`flex-shrink-0 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+      {/* No index available in this component's scope — mono number omitted (see task report) */}
       <span className="truncate">{chapter.name}</span>
     </li>
   );
