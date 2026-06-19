@@ -2,7 +2,8 @@
 
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { clearTokens, getUser } from "@/utils/storage";
+import { getUser, clearUser } from "@/utils/storage";
+import { setAccessToken } from "@/lib/authToken";
 import { ThemeSwitcher } from "@/components/theme/ThemeSwitcher";
 import { BookOpen, LogOut } from "lucide-react";
 
@@ -10,9 +11,14 @@ export function Header() {
   const router = useRouter();
   const user = getUser();
 
-  const handleLogout = () => {
-    clearTokens();
-    router.push("/auth/login");
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } finally {
+      setAccessToken(null);
+      clearUser();
+      router.push("/auth/login");
+    }
   };
 
   return (

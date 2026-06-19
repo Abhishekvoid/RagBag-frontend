@@ -20,7 +20,8 @@ import api from "@/lib/axios";
 
 
 // import googleAuthIcon from "@/components/icons/googleauth.png";
-import { setTokens, setUser } from "@/utils/storage";
+import { setUser } from "@/utils/storage";
+import { setAccessToken } from "@/lib/authToken";
 
 
 export function LoginForm() {
@@ -52,50 +53,30 @@ export function LoginForm() {
     return "An unexpected Error Occured";
   }
   const onSubmit = async (data: LoginInput) => {
-  console.log('🎯 LOGIN FORM SUBMITTED!'); // Check if form submits
-  console.log('📝 Form data received:', data);
-  console.log('🌐 API URL from env:', process.env.NEXT_PUBLIC_API_URL);
-  
-  setIsLoading(true);   
+  setIsLoading(true);
   setError("");
 
   try {
-    console.log('🚀 About to make API call to:', `${process.env.NEXT_PUBLIC_API_URL}/auth/jwt/create/`);
-    
-    const response = await api.post("/auth/jwt/create/", data, {timeout: 60000});
-    
-    console.log('✅ API Response received:', response);
-    console.log('📊 Response status:', response.status);
-    console.log('📦 Response data:', response.data);
-
-    // Store tokens in cookies
-    const { access, refresh } = response.data;
-    
-    console.log('🔑 Tokens extracted:', {
-      access: access ? 'Access token received' : 'No access token',
-      refresh: refresh ? 'Refresh token received' : 'No refresh token'
+    const r = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
     });
-    
-    setTokens(access, refresh);
-    console.log('💾 Tokens stored in cookies');
-    
-    const me = await api.get("auth/me/");
-    setUser(me.data)
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.detail || `Login failed (${r.status})`);
+    }
+    const { access } = await r.json();
+    setAccessToken(access);
 
-    
-    // Check if tokens were actually stored
-    setTimeout(() => {
-      console.log('🔍 Verifying stored tokens:');
-      console.log('Access Token:', document.cookie.split(';').find(c => c.trim().startsWith('access_token=')));
-      console.log('Refresh Token:', document.cookie.split(';').find(c => c.trim().startsWith('refresh_token=')));
-    }, 100);
+    const me = await api.get("/auth/me/");
+    setUser(me.data);
 
-    // Redirect to dashboard
-     router.push('/dashboard');
-    
+    router.push("/dashboard");
+
   } catch (error: unknown) {
     console.error('❌ Login form error occurred:', error);
-    
+
     if (error instanceof AxiosError) {
       console.error('📄 Axios error details:');
       console.error('  - Status:', error.response?.status);
@@ -104,11 +85,10 @@ export function LoginForm() {
       console.error('  - Request URL:', error.config?.url);
       console.error('  - Request method:', error.config?.method);
     }
-    
+
     setError(handleApiError(error));
   } finally {
     setIsLoading(false);
-    console.log('🏁 Login process completed');
   }
 };
 
