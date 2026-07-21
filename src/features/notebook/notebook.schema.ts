@@ -114,12 +114,21 @@ export const chatMessageDTOSchema = z.object({
   citations: z.any().nullable(),
   error: z.string().nullable(),
   created_at: z.string(),
+  suggestions: z.array(z.string()).nullable().optional(),
+});
+
+export const sourceChipSchema = z.object({
+  document_id: z.string(),
+  title: z.string(),
+  snippet: z.string(),
 });
 
 export const ragChatResponseSchema = z.object({
   id: z.uuid(),
   sender: z.enum(["user", "ai"]),
   text: z.string(),
+  sources: z.array(sourceChipSchema).optional().default([]),
+  followups: z.array(z.string()).optional().default([]),
 });
 
 export const paginatedMessagesSchema = z.object({

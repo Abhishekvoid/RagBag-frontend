@@ -40,6 +40,8 @@ export type Message = {
   sender: "user" | "ai";
   text: string;
   error?: boolean;
+  sources?: { document_id: string; title: string; snippet: string }[];
+  followups?: string[];
 };
 
 export type Chapter = ChapterDTO & {
@@ -532,12 +534,18 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
         );
 
         try {
-          const aiResponse: MessageDTO = await notebookApi.sendRagMessage({
+          const aiResponse = await notebookApi.sendRagMessage({
             chapterId: activeChapter.id,
             text,
           });
 
-          const aiMessage: Message = { ...aiResponse, sender: "ai" };
+          const aiMessage: Message = {
+            id: aiResponse.id,
+            sender: "ai",
+            text: aiResponse.text,
+            sources: aiResponse.sources ?? [],
+            followups: aiResponse.followups ?? [],
+          };
 
           set((state) => {
             const currentChapter = findChapter(state, activeChapter.id);
