@@ -51,11 +51,16 @@ export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
       console.log("✅ Upload success");
 
       // Rebind temp -> real document id so WS events (keyed by the real id) match.
+      // The ingestion task may already have pushed a phase event under the real
+      // id before this POST resolved; if so, keep that live entry and only drop
+      // the temp placeholder (never regress it back to "uploading").
       const realId = res.data.id;
       const store = useNotebookStore.getState();
       if (store.ingestions[tempId]) {
-        store.startIngestion(realId, file.name);
-        store.setUploadPercent(realId, 100);
+        if (!store.ingestions[realId]) {
+          store.startIngestion(realId, file.name);
+          store.setUploadPercent(realId, 100);
+        }
         store.dismissIngestion(tempId);
       }
 
