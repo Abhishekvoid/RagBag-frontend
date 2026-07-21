@@ -68,10 +68,19 @@ export const notebookApi = {
   fetchDocuments: () => api.get<DocumentDTO[]>("/auth/documents/"),
   fetchDocumentDetail: (id: string) =>
     api.get<DocumentDTO>(`/auth/documents/${id}/`),
-  uploadDocument: (formData: FormData) =>
+  uploadDocument: (
+    formData: FormData,
+    onUploadProgress?: (percent: number) => void,
+  ) =>
     api.post<DocumentDTO>("/auth/documents/", formData, {
       headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress: (e) => {
+        if (onUploadProgress && e.total) {
+          onUploadProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      },
     }),
+  retryDocument: (id: string) => api.post(`/auth/documents/${id}/retry/`),
   updateDocument: (
     id: string,
     data: Partial<{ title: string; chapter?: string }>

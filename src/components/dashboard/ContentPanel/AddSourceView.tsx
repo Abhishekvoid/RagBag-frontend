@@ -21,16 +21,17 @@ export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
 
   // --- HANDLERS ---
 
-  const fetchSubjects = useNotebookStore((state) => state.fetchSubjects);
+  const startIngestion = useNotebookStore((state) => state.startIngestion);
+  const setUploadPercent = useNotebookStore((state) => state.setUploadPercent);
+  const dismissIngestion = useNotebookStore((state) => state.dismissIngestion);
 
   const handleFileSelect = async (file: File) => {
     if (!file) return;
-    
-    console.log("📂 File selected:", file.name); 
-    
+
+    console.log("📂 File selected:", file.name);
+
     setError(null);
     setIsUploading(true);
-  
 
     const formData = new FormData();
     formData.append("file", file);
@@ -38,21 +39,32 @@ export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
       formData.append("chapter", chapter.id);
     }
 
+    // Optimistic entry under a temp id so the UI never blanks out.
+    const tempId = `temp-${Date.now()}`;
+    startIngestion(tempId, file.name);
+
     try {
       console.log("🚀 Uploading...");
-      await notebookApi.uploadDocument(formData);
+      const res = await notebookApi.uploadDocument(formData, (percent) => {
+        setUploadPercent(tempId, percent);
+      });
       console.log("✅ Upload success");
-      
-      
-      await fetchSubjects();
+
+      // Rebind temp -> real document id so WS events (keyed by the real id) match.
+      const realId = res.data.id;
+      const store = useNotebookStore.getState();
+      if (store.ingestions[tempId]) {
+        store.startIngestion(realId, file.name);
+        store.setUploadPercent(realId, 100);
+        store.dismissIngestion(tempId);
+      }
+
       setIsUploading(false);
-      
-      
     } catch (err) {
       console.error("❌ Upload failed:", err);
+      dismissIngestion(tempId);
       setError("Upload failed. Please try a valid PDF or DOCX.");
       setIsUploading(false);
-
     }
   };
 
@@ -78,16 +90,16 @@ export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
 
   // --- RENDER ---
 
-   return (
+  return (
     <div className="flex flex-col items-center justify-center h-full w-full p-6">
       <div className="w-full max-w-lg">
-        
+
         <div className="text-center mb-8 space-y-2">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground">
-            {chapter ? "Add Knowledge Source" : "Start Your Notebook"}
+          <h2 className="pencil font-display text-2xl font-semibold tracking-tight text-foreground">
+            {chapter ? "Add a source" : "Start your notebook"}
           </h2>
           <p className="text-muted-foreground text-sm">
-            Upload a PDF, DOCX, or TXT file to begin the analysis.
+            Drop in a PDF, DOCX, or TXT and StudyWise starts reading it.
           </p>
         </div>
 
@@ -100,8 +112,8 @@ export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
           className={cn(
             "relative group cursor-pointer overflow-hidden rounded-3xl border-2 border-dashed transition-all duration-300 ease-out",
             "bg-card/50 h-64 flex flex-col items-center justify-center gap-4",
-            isDragActive 
-              ? "border-primary bg-primary/5 scale-[1.02] shadow-2xl shadow-primary/10" 
+            isDragActive
+              ? "border-primary bg-primary/5 scale-[1.02] shadow-2xl shadow-primary/10"
               : "border-muted-foreground/20 hover:border-primary/50 hover:bg-muted/30",
             error && "border-destructive/50 bg-destructive/5"
           )}
@@ -111,8 +123,8 @@ export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
             type="file"
             accept=".pdf,.docx,.txt"
             onChange={(e) => {
-                if (e.target.files?.[0]) handleFileSelect(e.target.files[0]);
-                e.target.value = ""; // Reset input
+              if (e.target.files?.[0]) handleFileSelect(e.target.files[0]);
+              e.target.value = ""; // Reset input
             }}
             className="hidden"
             disabled={isUploading}
@@ -127,12 +139,9 @@ export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
                 exit={{ opacity: 0, scale: 0.8 }}
                 className="flex flex-col items-center gap-4"
               >
-                <div className="relative">
-                  <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse" />
-                  <Loader2 className="w-12 h-12 text-primary animate-spin relative z-10" />
-                </div>
-                <p className="text-sm font-medium text-muted-foreground animate-pulse">
-                  Uploading to secure storage...
+                <Loader2 className="w-10 h-10 text-primary animate-spin" />
+                <p className="text-sm font-medium text-muted-foreground">
+                  Uploading to secure storage…
                 </p>
               </motion.div>
             ) : (
@@ -156,19 +165,15 @@ export function AddSourceView({ onSourceAdded, chapter }: AddSourceViewProps) {
 
                 <div className="space-y-1">
                   <p className="text-sm font-medium text-foreground">
-                    {isDragActive ? "Drop it like it's hot!" : "Click to upload or drag & drop"}
+                    {isDragActive ? "Drop to upload" : "Click to upload or drag & drop"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    MAX 50MB • PDF, DOCX, TXT
+                    Max 50MB · PDF, DOCX, TXT
                   </p>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
-
-          {!isUploading && (
-            <div className="absolute inset-0 pointer-events-none opacity-[0.03] bg-[url('https://grainy-gradients.vercel.app/noise.svg')] bg-repeat" />
-          )}
         </motion.div>
 
         <AnimatePresence>

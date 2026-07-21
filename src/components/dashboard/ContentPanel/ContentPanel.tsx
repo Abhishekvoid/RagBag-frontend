@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNotebookStore } from "@/lib/store/useNotebook";
 import { ChatView } from "./ChatView";
 import { AddSourceView } from "./AddSourceView";
+import { IngestionProgress } from "./IngestionProgress";
 
 // ── Processing Card ───────────────────────────────────────────────────────────
 
@@ -88,9 +89,8 @@ function ProcessingCard() {
                 )}
               </div>
               <span
-                className={`text-[13px] flex-1 transition-colors ${
-                  done || active ? "text-foreground" : "text-muted-foreground"
-                } ${active ? "font-medium" : ""}`}
+                className={`text-[13px] flex-1 transition-colors ${done || active ? "text-foreground" : "text-muted-foreground"
+                  } ${active ? "font-medium" : ""}`}
               >
                 {step.label}
               </span>
@@ -148,6 +148,13 @@ function Shell({ children }: { children: React.ReactNode }) {
 export function ContentPanel() {
   const activeChapterId = useNotebookStore((s) => s.activeChapterId);
   const fetchSubjects = useNotebookStore((s) => s.fetchSubjects);
+  const ingestions = useNotebookStore((s) => s.ingestions);
+
+  // The most recent in-flight ingestion drives the live phase checklist.
+  // This takes priority so the upload never leaves a blank gap — even before
+  // a chapter exists to select.
+  const inFlight = Object.values(ingestions);
+  const activeIngestion = inFlight[inFlight.length - 1];
 
   const activeChapter = useNotebookStore((s) =>
     s.subjects
@@ -181,6 +188,17 @@ export function ContentPanel() {
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [isProcessing, fetchSubjects]);
+
+  // ── A document is actively ingesting — show the live phase checklist ──
+  if (activeIngestion) {
+    return (
+      <Shell>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <IngestionProgress ingestion={activeIngestion} />
+        </div>
+      </Shell>
+    );
+  }
 
   // ── No chapter selected ──
   if (!activeChapter) {

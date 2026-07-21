@@ -17,6 +17,12 @@ import {
 } from "@/features/notebook/notebook.schema";
 import { v4 as uuidv4 } from "uuid";
 import { getAccessToken } from "@/lib/authToken";
+import {
+  Ingestion,
+  IngestionStatusEvent,
+  applyIngestionEvent,
+  makeOptimisticIngestion,
+} from "@/features/notebook/ingestion";
 
 let ws: WebSocket | null = null;
 
@@ -62,6 +68,8 @@ type NotebookState = {
   isLoading: boolean;
   error: string | null;
   currentStudioView: "controls" | "questions" | "flashcards";
+  ingestions: Record<string, Ingestion>;
+  onIngestionReady?: (chapterId: string) => void;
 };
 
 type NotebookActions = {
@@ -81,6 +89,11 @@ type NotebookActions = {
   updateFlashCards: (flashCardId: string, data: FlashCardUpdate) => void;
   deleteFlashCards: (flashcardId: string) => void;
   setStudioView: (view: "controls" | "questions" | "flashcards") => void;
+  startIngestion: (documentId: string, filename: string) => void;
+  setUploadPercent: (documentId: string, percent: number) => void;
+  dismissIngestion: (documentId: string) => void;
+  retryIngestion: (documentId: string) => Promise<void>;
+  seedInFlightIngestions: () => Promise<void>;
 };
 
 const WS_BASE =
@@ -97,6 +110,8 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
       isLoading: false,
       error: null,
       currentStudioView: "controls",
+      ingestions: {},
+      onIngestionReady: undefined,
       initWebSocket: () => {
         if (ws) return; 
 
@@ -115,11 +130,40 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
 
             console.log("WS EVENT:", data);
 
+            if (data.type === "ingestion_status") {
+              const evt = data as IngestionStatusEvent;
+              set((state) => ({
+                ingestions: {
+                  ...state.ingestions,
+                  [evt.document_id]: applyIngestionEvent(
+                    state.ingestions[evt.document_id],
+                    evt,
+                  ),
+                },
+              }));
+
+              if (evt.phase === "ready") {
+                await get().fetchSubjects();
+                const chapterId = evt.chapter_id ?? null;
+                if (chapterId) {
+                  get().setActiveChapter(chapterId);
+                  get().onIngestionReady?.(chapterId);
+                }
+                // Remove the finished card shortly after the swap.
+                setTimeout(
+                  () => get().dismissIngestion(evt.document_id),
+                  1200,
+                );
+              }
+              return;
+            }
+
+            // Legacy coarse events still trigger a refresh.
             if (
               data.message === "notebook_updated" ||
               data.message === "document_ready"
             ) {
-              await get().fetchSubjects(); 
+              await get().fetchSubjects();
             }
           } catch (e) {
             console.error("WS parse error", e);
@@ -168,6 +212,84 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
             error: "Failed to load your notebook. Please try again.",
             isLoading: false,
           });
+        }
+      },
+
+      // --- INGESTION STATUS ACTIONS ---
+      startIngestion: (documentId, filename) => {
+        set((state) => ({
+          ingestions: {
+            ...state.ingestions,
+            [documentId]: makeOptimisticIngestion(documentId, filename),
+          },
+        }));
+      },
+
+      setUploadPercent: (documentId, percent) => {
+        set((state) => {
+          const cur = state.ingestions[documentId];
+          if (!cur) return {} as Partial<NotebookState>;
+          return {
+            ingestions: {
+              ...state.ingestions,
+              [documentId]: { ...cur, uploadPercent: percent },
+            },
+          };
+        });
+      },
+
+      dismissIngestion: (documentId) => {
+        set((state) => {
+          const next = { ...state.ingestions };
+          delete next[documentId];
+          return { ingestions: next };
+        });
+      },
+
+      retryIngestion: async (documentId) => {
+        try {
+          await notebookApi.retryDocument(documentId);
+          set((state) => {
+            const cur = state.ingestions[documentId];
+            if (!cur) return {} as Partial<NotebookState>;
+            return {
+              ingestions: {
+                ...state.ingestions,
+                [documentId]: {
+                  ...cur,
+                  phase: "reading",
+                  error: null,
+                  uploadPercent: 100,
+                },
+              },
+            };
+          });
+        } catch (err) {
+          console.error("retryIngestion failed:", err);
+        }
+      },
+
+      seedInFlightIngestions: async () => {
+        try {
+          const res = await notebookApi.fetchDocuments();
+          const docs = res.data;
+          set((state) => {
+            const next = { ...state.ingestions };
+            for (const d of docs) {
+              if (
+                (d.status === "PENDING" || d.status === "PROCESSING") &&
+                !next[d.id]
+              ) {
+                const seed = makeOptimisticIngestion(d.id, d.title || "Document");
+                // Coarse resume: show a generic processing phase until a
+                // live WS event refines it.
+                next[d.id] = { ...seed, phase: "reading", uploadPercent: 100 };
+              }
+            }
+            return { ingestions: next };
+          });
+        } catch (err) {
+          console.error("seedInFlightIngestions failed:", err);
         }
       },
 

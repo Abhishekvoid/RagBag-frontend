@@ -10,10 +10,10 @@ import { Input } from "@/components/ui/input";
 import { NewSubjectModal } from "./Subject/NewSubjectModal";
 import { NewChapterModal } from "./Chapter/NewChapterModal";
 // import { getAccessToken } from "@/utils/storage";
-import { SidebarSkeleton } from "./SidebarSkeleton"; 
+import { SidebarSkeleton } from "./SidebarSkeleton";
 
 import { SearchIcon, CollectionIcon, SparkleIcon } from "../Icons";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 
 // const WS_BASE =
 //   process.env.NEXT_PUBLIC_WS_URL ||
@@ -26,8 +26,16 @@ export function NotebookSidebar() {
     fetchSubjects,
     isLoading,
     error,
+    ingestions,
   } = useNotebookStore();
-  
+
+  // In-flight uploads shown as live "Processing…" rows until they resolve
+  // into real chapters. Once ready, the entry is dismissed and the real
+  // chapter appears in the list below.
+  const processingRows = Object.values(ingestions).filter(
+    (i) => i.phase !== "ready",
+  );
+
   const [expandedSubjects, setExpandedSubjects] = useState<Record<string, boolean>>({});
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
@@ -113,7 +121,7 @@ export function NotebookSidebar() {
     setIsChapterModalOpen(true);
   };
 
- 
+
   const uncategorizedSubject = filteredSubjects.find((s) => s.id === "uncategorized-chapters");
   const uncategorizedChapters = uncategorizedSubject?.chapters || [];
   const regularSubjects = filteredSubjects.filter(s => s.id !== "uncategorized-chapters");
@@ -121,12 +129,12 @@ export function NotebookSidebar() {
   // --- RENDER ---
   return (
     <aside className="flex flex-col h-full bg-background border-r border-border/60 p-4 overflow-y-auto">
-  
+
       <div className="flex items-center gap-2 mb-4">
-        <h2 className="text-xl font-bold text-card-foreground tracking-tight">My Notebook</h2>
+        <h2 className="pencil font-display text-lg font-semibold tracking-tight text-foreground">My Notebook</h2>
       </div>
 
-     
+
       <div className="flex gap-2 mb-4">
         <NewSubjectModal />
         <Button
@@ -148,8 +156,8 @@ export function NotebookSidebar() {
         <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input
           type="text"
-          placeholder="Search..."
-          className="pl-10 bg-background/50 focus:bg-background transition-colors"
+          placeholder="Search notebook…"
+          className="pl-10 rounded-xl bg-secondary/50 focus:bg-secondary transition-colors"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
@@ -162,7 +170,29 @@ export function NotebookSidebar() {
         <div className="text-destructive text-sm p-2 text-center">{error}</div>
       ) : (
         <div className="flex-grow overflow-y-auto -mr-4 pr-4 animate-in fade-in duration-300">
-          
+
+          {/* Live ingestion rows */}
+          {processingRows.length > 0 && (
+            <ul className="flex flex-col px-4 pt-2 gap-0.5">
+              {processingRows.map((ing) => (
+                <li
+                  key={ing.documentId}
+                  className="flex items-center gap-2 px-2 py-1.5 text-sm text-muted-foreground"
+                >
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />
+                  <span className="truncate">
+                    {ing.title || ing.filename}
+                    <span className="text-muted-foreground/60">
+                      {ing.phase === "failed"
+                        ? " · failed"
+                        : ` · ${ing.phase}`}
+                    </span>
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+
           {/* "Alone Chapters" Section */}
           {uncategorizedChapters.length > 0 && (
             <div className="px-2 pt-2 pb-1">
