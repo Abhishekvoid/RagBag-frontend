@@ -2,20 +2,27 @@
 "use client";
 import './global.css'
 
-import { Geist, Geist_Mono } from "next/font/google";
+import { Manrope, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 
 import { ThemeProvider } from "@/components/theme-provider";
 
 import { SessionProvider } from "next-auth/react";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
 });
 
+const cabinetGrotesk = localFont({
+  src: "../../public/font/CabinetGrotesk_Complete/Fonts/WEB/fonts/CabinetGrotesk-Variable.woff2",
+  variable: "--font-display",
+  weight: "100 900",
+  display: "swap",
+});
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
   subsets: ["latin"],
 });
 
@@ -28,7 +35,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${manrope.variable} ${cabinetGrotesk.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
         
         <SessionProvider>

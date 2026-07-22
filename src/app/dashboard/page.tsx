@@ -18,6 +18,8 @@ import { cn } from "@/lib/utils";
 
 type MobileTab = "sources" | "chat" | "study";
 
+const SIDEBAR_WIDTH = 300; // px — fixed notebook panel width (Zen-style, collapsible)
+
 const MOBILE_TABS: { id: MobileTab; label: string; icon: typeof Library }[] = [
   { id: "sources", label: "Sources", icon: Library },
   { id: "chat", label: "Chat", icon: MessagesSquare },
@@ -28,6 +30,33 @@ export default function DashboardPage() {
   const router = useRouter();
   const isDesktop = useMediaQuery("(min-width: 1024px)", true);
   const [mobileTab, setMobileTab] = useState<MobileTab>("chat");
+
+  // Zen-style collapsible notebook panel
+  const [collapsed, setCollapsed] = useState(false);
+  const [peeking, setPeeking] = useState(false);
+  const collapse = () => { setCollapsed(true); setPeeking(false); };
+  const expand = () => { setCollapsed(false); setPeeking(false); };
+
+  // Restore + persist collapsed preference
+  useEffect(() => {
+    if (localStorage.getItem("sw-notebook-collapsed") === "1") setCollapsed(true);
+  }, []);
+  useEffect(() => {
+    localStorage.setItem("sw-notebook-collapsed", collapsed ? "1" : "0");
+  }, [collapsed]);
+
+  // Cmd/Ctrl+B toggles the panel (Zen shortcut)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "b") {
+        e.preventDefault();
+        setPeeking(false);
+        setCollapsed((c) => !c);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   useEffect(() => {
     useNotebookStore.getState().initWebSocket();
@@ -52,27 +81,67 @@ export default function DashboardPage() {
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-background text-foreground">
       <Grain />
-      <Header />
+      <Header
+        sidebarCollapsed={collapsed}
+        onToggleSidebar={() => { setPeeking(false); setCollapsed((c) => !c); }}
+      />
 
       <div className="min-h-0 flex-1 overflow-hidden">
         {isDesktop ? (
-          <Split
-            direction="horizontal"
-            sizes={[22, 53, 25]}
-            minSize={[240, 380, 280]}
-            gutterSize={10}
-            className="flex h-full w-full"
-          >
-            <div className="flex min-w-0 flex-col overflow-hidden">
-              <NotebookSidebar />
+          <div className="relative flex h-full w-full">
+            {/* Notebook panel — in flow, animates to 0 width when collapsed */}
+            <div
+              className="relative z-20 h-full shrink-0 overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]"
+              style={{ width: collapsed ? 0 : SIDEBAR_WIDTH }}
+            >
+              <div style={{ width: SIDEBAR_WIDTH }} className="h-full">
+                <NotebookSidebar onCollapse={collapse} />
+              </div>
             </div>
-            <div className="flex min-w-0 flex-col overflow-hidden">
-              <ContentPanel />
+
+            {/* Center + Studio — resizable between themselves */}
+            <div className="min-w-0 flex-1">
+              <Split
+                direction="horizontal"
+                sizes={[68, 32]}
+                minSize={[380, 300]}
+                gutterSize={10}
+                className="flex h-full w-full"
+              >
+                <div className="flex min-w-0 flex-col overflow-hidden">
+                  <ContentPanel />
+                </div>
+                <div className="flex min-w-0 flex-col overflow-hidden">
+                  <StudioPanel />
+                </div>
+              </Split>
             </div>
-            <div className="flex min-w-0 flex-col overflow-hidden">
-              <StudioPanel />
-            </div>
-          </Split>
+
+            {/* Collapsed affordances: edge hover trigger + floating peek overlay (toggle lives in the Header) */}
+            {collapsed && (
+              <>
+                {/* Left-edge hover zone reveals the peek overlay */}
+                <div
+                  className="absolute inset-y-0 left-0 z-30 w-3"
+                  onMouseEnter={() => setPeeking(true)}
+                />
+
+                {/* Floating hover-peek overlay */}
+                <div
+                  onMouseLeave={() => setPeeking(false)}
+                  className={cn(
+                    "absolute inset-y-2 left-2 z-40 overflow-hidden rounded-2xl border border-border bg-popover/95 shadow-[0_32px_80px_-24px_rgba(0,0,0,0.55)] backdrop-blur-xl transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]",
+                    peeking
+                      ? "translate-x-0 opacity-100"
+                      : "pointer-events-none -translate-x-[112%] opacity-0",
+                  )}
+                  style={{ width: SIDEBAR_WIDTH }}
+                >
+                  <NotebookSidebar floating onPin={expand} />
+                </div>
+              </>
+            )}
+          </div>
         ) : (
           <div className="flex h-full flex-col">
             <div className="min-h-0 min-w-0 flex-1 overflow-hidden">

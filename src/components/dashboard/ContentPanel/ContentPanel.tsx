@@ -149,12 +149,26 @@ export function ContentPanel() {
   const activeChapterId = useNotebookStore((s) => s.activeChapterId);
   const fetchSubjects = useNotebookStore((s) => s.fetchSubjects);
   const ingestions = useNotebookStore((s) => s.ingestions);
+  const pollIngestions = useNotebookStore((s) => s.pollIngestions);
 
   // The most recent in-flight ingestion drives the live phase checklist.
   // This takes priority so the upload never leaves a blank gap — even before
   // a chapter exists to select.
   const inFlight = Object.values(ingestions);
   const activeIngestion = inFlight[inFlight.length - 1];
+
+  // Polling backstop: while any ingestion is unfinished, reconcile with the
+  // server so the card still advances/completes if live WS events don't arrive.
+  const hasInFlightIngestion = inFlight.some(
+    (i) => i.phase !== "ready" && i.phase !== "failed",
+  );
+  useEffect(() => {
+    if (!hasInFlightIngestion) return;
+    const t = setInterval(() => {
+      pollIngestions();
+    }, 3500);
+    return () => clearInterval(t);
+  }, [hasInFlightIngestion, pollIngestions]);
 
   const activeChapter = useNotebookStore((s) =>
     s.subjects

@@ -4,24 +4,12 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 import { AxiosError } from "axios";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  registerSchema,
-  type RegisterInput,
-} from "@/features/auth/auth.schemas";
-import api from "@/lib/axios";
 
-// import googleAuthIcon from "@/components/icons/googleauth.png";
+import { registerSchema, type RegisterInput } from "@/features/auth/auth.schemas";
+import api from "@/lib/axios";
+import { Field, PrimaryButton, GoogleButton } from "@/components/ui/kit";
 
 export function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -33,33 +21,27 @@ export function RegisterForm() {
     register,
     handleSubmit,
     formState: { errors },
-  } = useForm<RegisterInput>({
-    resolver: zodResolver(registerSchema),
-  });
+  } = useForm<RegisterInput>({ resolver: zodResolver(registerSchema) });
 
   const handleApiError = (error: unknown): string => {
     if (error instanceof AxiosError) {
       return (
         error.response?.data?.detail ||
+        error.response?.data?.email?.[0] ||
         error.response?.data?.non_field_errors?.[0] ||
         `Registration failed: ${error.response?.status || "unknown error"}`
       );
     }
-
-    if (error instanceof Error) {
-      return error.message;
-    }
-
+    if (error instanceof Error) return error.message;
     return "An unexpected error occurred";
   };
 
   const onSubmit = async (data: RegisterInput) => {
-    // Transform data to match Django's expected field names
     const djangoData = {
       name: data.name,
       email: data.email,
-      password1: data.password, // ✅ Correct: maps password to password1
-      password2: data.password2, // ✅ Correct: uses password2
+      password1: data.password,
+      password2: data.password2,
     };
 
     setIsLoading(true);
@@ -67,26 +49,10 @@ export function RegisterForm() {
     setSuccess(false);
 
     try {
-      // ✅ Fixed: Send djangoData instead of data
       await api.post("/auth/register/", djangoData);
-
       setSuccess(true);
-
-      setTimeout(() => {
-        router.push("/auth/login");
-      }, 2000);
+      setTimeout(() => router.push("/auth/login"), 1800);
     } catch (error: unknown) {
-      console.error("❌ Registration form error occurred:", error);
-
-      if (error instanceof AxiosError) {
-        console.error("📄 Axios error details:");
-        console.error("  - Status:", error.response?.status);
-        console.error("  - Data:", error.response?.data);
-        console.error("  - Headers:", error.response?.headers);
-        console.error("  - Request URL:", error.config?.url);
-        console.error("  - Request method:", error.config?.method);
-      }
-
       setError(handleApiError(error));
     } finally {
       setIsLoading(false);
@@ -95,140 +61,70 @@ export function RegisterForm() {
 
   if (success) {
     return (
-      <Card className="w-full max-w-md mx-auto">
-        <CardContent className="pt-6">
-          <div className="text-center space-y-2">
-            <div className="text-green-600 text-4xl">✓</div>
-            <h3 className="text-lg font-semibold">Registration Successful!</h3>
-            <p className="text-sm text-muted-foreground">
-              Redirecting you to login...
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col items-center gap-3 py-6 text-center">
+        <div className="flex size-12 items-center justify-center rounded-full bg-primary/15 text-primary olive-pulse">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 6 9 17l-5-5" />
+          </svg>
+        </div>
+        <h3 className="font-display text-lg font-semibold">You&apos;re in</h3>
+        <p className="text-sm text-muted-foreground">Taking you to sign in…</p>
+      </div>
     );
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto relative overflow-hidden">
-     
-      <CardHeader className="space-y-1relative z-10">
-        <CardTitle className="text-2xl font-bold text-center">
-          Create Account
-        </CardTitle>
-        <CardDescription className="text-center">
-          Enter your information to create your account
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
-            <Input
-              {...register("name")}
-              id="username"
-              type="text"
-              placeholder="johndoe"
-              className={errors.name ? "border-destructive" : ""}
-            />
-            {errors.name && (
-              <p className="text-sm text-destructive">
-                {errors.name.message}
-              </p>
-            )}
-          </div>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <Field
+        label="Name"
+        type="text"
+        placeholder="Priya Anand"
+        autoComplete="name"
+        error={errors.name?.message}
+        {...register("name")}
+      />
+      <Field
+        label="Email"
+        type="email"
+        placeholder="you@university.edu"
+        autoComplete="email"
+        error={errors.email?.message}
+        {...register("email")}
+      />
+      <Field
+        label="Password"
+        type="password"
+        placeholder="At least 8 characters"
+        autoComplete="new-password"
+        error={errors.password?.message}
+        {...register("password")}
+      />
+      <Field
+        label="Confirm password"
+        type="password"
+        placeholder="Re-enter your password"
+        autoComplete="new-password"
+        error={errors.password2?.message}
+        {...register("password2")}
+      />
 
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              {...register("email")}
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              className={errors.email ? "border-destructive" : ""}
-            />
-            {errors.email && (
-              <p className="text-sm text-destructive">{errors.email.message}</p>
-            )}
-          </div>
-
-          {/* ✅ Fixed: Uses 'password' to match schema */}
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              {...register("password")}
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              className={errors.password ? "border-destructive" : ""}
-            />
-            {errors.password && (
-              <p className="text-sm text-destructive">
-                {errors.password.message}
-              </p>
-            )}
-          </div>
-
-          {/* ✅ Fixed: Uses 'password2' and correct error reference */}
-          <div className="space-y-2">
-            <Label htmlFor="password2">Confirm Password</Label>
-            <Input
-              {...register("password2")}
-              id="password2"
-              type="password"
-              placeholder="••••••••"
-              className={errors.password2 ? "border-destructive" : ""}
-            />
-            {errors.password2 && (
-              <p className="text-sm text-destructive">
-                {errors.password2.message}
-              </p>
-            )}
-          </div>
-
-          {error && (
-            <div className="bg-destructive/10 border border-destructive/20 text-destructive px-4 py-3 rounded-md text-sm">
-              {error}
-            </div>
-          )}
-
-          <Button
-            type="submit"
-            disabled={isLoading}
-            className="w-full"
-            size="lg"
-          >
-            {isLoading ? "Creating account..." : "Create Account"}
-          </Button>
-        </form>
-
-        <div className="relative my-4">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          {/* <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">
-              Or continue with
-            </span>
-          </div> */}
+      {error && (
+        <div className="rounded-xl border border-destructive/25 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+          {error}
         </div>
+      )}
 
-        {/* <div className="grid grid-cols-1 gap-4">
-          <form action="/api/auth/signin/google" method="post">
-            <Button type="submit" variant="outline" className="w-full">
-              <img src={googleAuthIcon.src} alt="Google" className="mr-2 h-4 w-4" /> 
-              Google
-            </Button>
-          </form>
-           Example for GitHub when you add it 
-           <form action="/api/auth/signin/github" method="post">
-            <Button type="submit" variant="outline" className="w-full">
-              <Icons.gitHub className="mr-2 h-4 w-4" />
-              GitHub
-            </Button>
-          </form> 
-        </div> */}
-      </CardContent>
-    </Card>
+      <PrimaryButton type="submit" disabled={isLoading} className="w-full">
+        {isLoading ? "Creating account…" : "Create account"}
+      </PrimaryButton>
+
+      <div className="my-1 flex items-center gap-3 text-[12px] text-muted-foreground">
+        <span className="h-px flex-1 bg-border" />
+        or continue with
+        <span className="h-px flex-1 bg-border" />
+      </div>
+
+      <GoogleButton type="button" onClick={() => signIn("google", { callbackUrl: "/dashboard" })} />
+    </form>
   );
 }

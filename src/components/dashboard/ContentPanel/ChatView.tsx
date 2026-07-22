@@ -1,6 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
+import { BookOpenText } from "lucide-react";
 import { useNotebookStore, Chapter } from "@/lib/store/useNotebook";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -51,13 +53,26 @@ export interface ChatViewProps {
 
 export function ChatView({ chapter }: ChatViewProps) {
   // --- STATE & STORE HOOKS ---
+  const router = useRouter();
   const [inputValue, setInputValue] = useState("");
   const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  const hasReadableSource = chapter.documents.some((d) => d.status === "COMPLETED");
 
   const sendMessage = useNotebookStore((state) => state.sendMessage);
   const isAiResponding = useNotebookStore((state) => state.isAiResponding);
 
-  const messages = chapter.messages || [];
+  const messages = useMemo(() => chapter.messages || [], [chapter.messages]);
+
+  // Recommended questions only make sense for the most recent answer — acting
+  // on an older answer's suggestions would be confusing. So only the last AI
+  // message renders its follow-ups; the rest keep them stored but hidden.
+  const lastAiMessageId = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].sender === "ai") return messages[i].id;
+    }
+    return null;
+  }, [messages]);
 
   const isLoadingHistory =
     chapter.pagination?.isLoading && messages.length === 0;
@@ -96,10 +111,22 @@ export function ChatView({ chapter }: ChatViewProps) {
             {chapter.documents.length} source{chapter.documents.length === 1 ? "" : "s"} connected
           </p>
         </div>
-        <span className="hidden shrink-0 items-center gap-2 rounded-full border border-border px-3 py-1 text-[11px] text-muted-foreground sm:inline-flex">
-          <span className="size-1.5 rounded-full bg-primary olive-pulse" />
-          Grounded
-        </span>
+        <div className="flex shrink-0 items-center gap-2">
+          {hasReadableSource && (
+            <button
+              type="button"
+              onClick={() => router.push(`/dashboard/chapter/${chapter.id}`)}
+              className="inline-flex items-center gap-1.5 rounded-full border border-primary/30 bg-primary/5 px-3 py-1.5 text-[12px] font-medium text-foreground transition-colors hover:bg-primary/10 active-press"
+            >
+              <BookOpenText size={14} className="text-primary" />
+              Open reading workspace
+            </button>
+          )}
+          <span className="hidden items-center gap-2 rounded-full border border-border px-3 py-1 text-[11px] text-muted-foreground sm:inline-flex">
+            <span className="size-1.5 rounded-full bg-primary olive-pulse" />
+            Grounded
+          </span>
+        </div>
       </div>
 
       {/* Chat History Area */}
@@ -152,7 +179,7 @@ export function ChatView({ chapter }: ChatViewProps) {
                       </div>
                     )}
 
-                    {msg.followups && msg.followups.length > 0 && (
+                    {msg.id === lastAiMessageId && msg.followups && msg.followups.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-1.5">
                         {msg.followups.map((q, i) => (
                           <button

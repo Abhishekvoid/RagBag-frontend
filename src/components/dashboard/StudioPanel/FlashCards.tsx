@@ -2,10 +2,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { useNotebookStore } from "@/lib/store/useNotebook";
 import { Button } from "@/components/ui/button";
-import { FlashCard } from "@/features/notebook/notebook.schema"; 
-import { ArrowLeft, ArrowRight } from "lucide-react"; 
+import { FlashCard } from "@/features/notebook/notebook.schema";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
 import { FlashcardSkeleton } from "./FlashcardSkeleton";
 
@@ -20,6 +21,7 @@ export function FlashcardViewer({
 }: FlashcardViewerProps) {
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+  const reduce = useReducedMotion();
 
   // Correctly get the singular updateFlashCard action from the store
   const updateFlashCards = useNotebookStore((state) => state.updateFlashCards);
@@ -93,35 +95,83 @@ export function FlashcardViewer({
         <ArrowLeft className="w-4 h-4" /> Back
       </Button>
 
-      {/* Card Face */}
-      <div
-        className="perspective-1000 w-full max-w-md h-64 cursor-pointer group"
-        onClick={handleFlip}
-      >
-        <div 
-          className={`relative w-full h-full transition-all duration-500 preserve-3d shadow-md rounded-xl border border-border bg-card ${isFlipped ? "rotate-y-180" : ""}`}
-          style={{ transformStyle: 'preserve-3d', transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}
-        >
-          {/* Front */}
-          <div className="absolute inset-0 backface-hidden flex items-center justify-center p-6 text-center">
-            <h3 className="text-xl font-semibold leading-relaxed select-none">
-              {currentFlashcard.flashcard_front}
-            </h3>
-            <p className="absolute bottom-4 text-xs text-muted-foreground uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
-              Tap to reveal
-            </p>
-          </div>
+      {/* Card deck — current card in front, upcoming cards peek behind, blurred */}
+      <div className="relative h-64 w-full max-w-md">
+        {/* Upcoming cards, stacked and blurred behind the current one */}
+        {[2, 1].map((depth) => {
+          const card = flashcards[currentCardIndex + depth];
+          if (!card) return null;
+          return (
+            <div
+              key={card.id}
+              aria-hidden
+              className="absolute inset-0 rounded-xl border border-border bg-card shadow-sm transition-all duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]"
+              style={{
+                transform: `translateY(-${depth * 16}px) scale(${1 - depth * 0.05})`,
+                filter: `blur(${depth * 2}px)`,
+                opacity: depth === 1 ? 0.6 : 0.32,
+              }}
+            />
+          );
+        })}
 
-          {/* Back */}
-          <div 
-            className="absolute inset-0 backface-hidden flex items-center justify-center p-6 text-center bg-secondary/10 rotate-y-180"
-            style={{ transform: 'rotateY(180deg)', backfaceVisibility: 'hidden' }}
+        {/* Current card — springs forward as the deck advances */}
+        <AnimatePresence initial={false}>
+          <motion.div
+            key={currentFlashcard.id}
+            initial={reduce ? false : { opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.95, y: -12 }}
+            transition={{ type: "spring", stiffness: 320, damping: 30 }}
+            className="absolute inset-0"
           >
-            <p className="text-lg text-muted-foreground leading-relaxed select-none">
-              {currentFlashcard.flashcard_back}
-            </p>
-          </div>
-        </div>
+            <div
+              className="group h-full w-full cursor-pointer"
+              style={{ perspective: "1000px" }}
+              onClick={handleFlip}
+            >
+              <div
+                className="relative h-full w-full rounded-xl border border-border bg-card shadow-lg transition-transform duration-500"
+                style={{ transformStyle: "preserve-3d", transform: isFlipped ? "rotateY(180deg)" : "rotateY(0deg)" }}
+              >
+                {/* Front */}
+                <div
+                  className="absolute inset-0 flex items-center justify-center rounded-xl bg-card p-6 text-center"
+                  style={{
+                    backfaceVisibility: "hidden",
+                    WebkitBackfaceVisibility: "hidden",
+                    transform: "rotateY(0deg)",
+                    opacity: isFlipped ? 0 : 1,
+                    transition: "opacity 0ms linear 250ms",
+                  }}
+                >
+                  <h3 className="select-none text-xl font-semibold leading-relaxed">
+                    {currentFlashcard.flashcard_front}
+                  </h3>
+                  <p className="absolute bottom-4 text-xs uppercase tracking-widest text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100">
+                    Tap to reveal
+                  </p>
+                </div>
+
+                {/* Back */}
+                <div
+                  className="absolute inset-0 flex items-center justify-center rounded-xl bg-card p-6 text-center"
+                  style={{
+                    transform: "rotateY(180deg)",
+                    backfaceVisibility: "hidden",
+                    WebkitBackfaceVisibility: "hidden",
+                    opacity: isFlipped ? 1 : 0,
+                    transition: "opacity 0ms linear 250ms",
+                  }}
+                >
+                  <p className="select-none text-lg leading-relaxed text-muted-foreground">
+                    {currentFlashcard.flashcard_back}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
       {/* Navigation */}
