@@ -1,5 +1,5 @@
 import axios from "axios";
-import { getAccessToken, setAccessToken } from "@/lib/authToken";
+import { getAccessToken, setAccessToken, refreshAccessToken } from "@/lib/authToken";
 import { clearUser } from "@/utils/storage";
 
 const api = axios.create({
@@ -28,10 +28,8 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       try {
         // BFF reads the httpOnly refresh cookie and returns a fresh access token.
-        const r = await fetch("/api/auth/refresh", { method: "POST" });
-        if (!r.ok) throw new Error("refresh failed");
-        const { access } = await r.json();
-        setAccessToken(access);
+        // Single-flight so concurrent 401s don't each rotate/invalidate the token.
+        const access = await refreshAccessToken();
         originalRequest.headers.Authorization = `Bearer ${access}`;
         return api(originalRequest);
       } catch (refreshError) {

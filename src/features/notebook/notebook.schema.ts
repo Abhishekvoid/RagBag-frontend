@@ -114,19 +114,32 @@ export const chatMessageDTOSchema = z.object({
   citations: z.any().nullable(),
   error: z.string().nullable(),
   created_at: z.string(),
+  suggestions: z.array(z.string()).nullable().optional(),
+});
+
+export const sourceChipSchema = z.object({
+  document_id: z.string(),
+  title: z.string(),
+  snippet: z.string(),
 });
 
 export const ragChatResponseSchema = z.object({
   id: z.uuid(),
   sender: z.enum(["user", "ai"]),
   text: z.string(),
+  sources: z.array(sourceChipSchema).optional().default([]),
+  followups: z.array(z.string()).optional().default([]),
 });
 
+// History messages come from ChatMessageSerializer, which returns `citations`
+// (the persisted source chips) and `suggestions` (the persisted follow-ups) —
+// NOT the live-response `sources`/`followups` shape. Parse that real shape so
+// those fields survive; loadChatHistory maps them back onto the UI message.
 export const paginatedMessagesSchema = z.object({
   count: z.number(),
   next: z.string().url().nullable(),
   previous: z.string().url().nullable(),
-  results: z.array(ragChatResponseSchema),
+  results: z.array(chatMessageDTOSchema),
 });
 export const questionsResponseSchema = z.object({
   questions: z.array(z.string()),
@@ -153,6 +166,43 @@ export const flashCardUpdateSchema = z.object({
   known: z.boolean().optional(),
   need_review: z.boolean().optional(),
 })
+
+// --- Co-reading: notes + document content ---
+export const NOTE_KINDS = ["highlight", "note", "ai", "chat", "scratch"] as const;
+export type NoteKind = (typeof NOTE_KINDS)[number];
+
+export const noteSchema = z.object({
+  id: z.uuid(),
+  chapter: z.uuid(),
+  document: z.uuid().nullable(),
+  kind: z.enum(NOTE_KINDS),
+  anchor_start: z.number().nullable(),
+  anchor_end: z.number().nullable(),
+  quoted_text: z.string(),
+  body: z.string(),
+  color: z.string(),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+export type NoteDTO = z.infer<typeof noteSchema>;
+
+export const documentContentSchema = z.object({
+  id: z.uuid(),
+  title: z.string(),
+  text: z.string(),
+});
+export type DocumentContentDTO = z.infer<typeof documentContentSchema>;
+
+// Payload for creating a note (chapter comes from the URL).
+export type NoteCreateInput = {
+  kind: NoteKind;
+  document?: string | null;
+  anchor_start?: number | null;
+  anchor_end?: number | null;
+  quoted_text?: string;
+  body?: string;
+  color?: string;
+};
 export type QuestionsResponseDTO = z.infer<typeof questionsResponseSchema>;
 export type DocumentDTO = z.infer<typeof documentResponseSchema>;
 export type ChapterDTO = z.infer<typeof chapterResponseSchema>;

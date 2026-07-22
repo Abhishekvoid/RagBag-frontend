@@ -23,6 +23,11 @@ import {
   flashCardSchema,
   FlashCard,
   flashCardUpdateSchema,
+  noteSchema,
+  documentContentSchema,
+  NoteDTO,
+  NoteCreateInput,
+  DocumentContentDTO,
 } from "./notebook.schema";
 import axios from "axios";
 
@@ -68,10 +73,19 @@ export const notebookApi = {
   fetchDocuments: () => api.get<DocumentDTO[]>("/auth/documents/"),
   fetchDocumentDetail: (id: string) =>
     api.get<DocumentDTO>(`/auth/documents/${id}/`),
-  uploadDocument: (formData: FormData) =>
+  uploadDocument: (
+    formData: FormData,
+    onUploadProgress?: (percent: number) => void,
+  ) =>
     api.post<DocumentDTO>("/auth/documents/", formData, {
       headers: { "Content-Type": "multipart/form-data" },
+      onUploadProgress: (e) => {
+        if (onUploadProgress && e.total) {
+          onUploadProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      },
     }),
+  retryDocument: (id: string) => api.post(`/auth/documents/${id}/retry/`),
   updateDocument: (
     id: string,
     data: Partial<{ title: string; chapter?: string }>
@@ -126,6 +140,11 @@ export const notebookApi = {
     }
   },
 
+  fetchQuestions: async (chapterId: string): Promise<GeneratedQuestion[]> => {
+    const response = await api.get(`/auth/chapters/${chapterId}/questions/`);
+    return z.array(generatedQuestionSchema).parse(response.data);
+  },
+
   
   generateFlashCards: async (chapterId: string): Promise<FlashCard[]> => {
     try {
@@ -150,6 +169,73 @@ export const notebookApi = {
 
   deleteFlashCard: async (id: string) => {
     await api.delete(`/auth/flashcards/${id}/`);
+  },
+
+  // === Co-reading: document content ===
+  fetchDocumentContent: async (id: string): Promise<DocumentContentDTO> => {
+    const response = await api.get(`/auth/documents/${id}/content/`);
+    return documentContentSchema.parse(response.data);
+  },
+
+  // === Co-reading: notes CRUD ===
+  fetchNotes: async (chapterId: string): Promise<NoteDTO[]> => {
+    const response = await api.get(`/auth/chapters/${chapterId}/notes/`);
+    return z.array(noteSchema).parse(response.data);
+  },
+  createNote: async (
+    chapterId: string,
+    payload: NoteCreateInput,
+  ): Promise<NoteDTO> => {
+    const response = await api.post(`/auth/chapters/${chapterId}/notes/`, payload);
+    return noteSchema.parse(response.data);
+  },
+  updateNote: async (
+    id: string,
+    patch: Partial<Pick<NoteDTO, "body" | "kind" | "color">>,
+  ): Promise<NoteDTO> => {
+    const response = await api.patch(`/auth/notes/${id}/`, patch);
+    return noteSchema.parse(response.data);
+  },
+  deleteNote: async (id: string) => {
+    await api.delete(`/auth/notes/${id}/`);
+  },
+
+  // === Co-reading: scratch pad (single get-or-create note per chapter) ===
+  fetchScratch: async (chapterId: string): Promise<NoteDTO> => {
+    const response = await api.get(`/auth/chapters/${chapterId}/scratch/`);
+    return noteSchema.parse(response.data);
+  },
+  saveScratch: async (chapterId: string, body: string): Promise<NoteDTO> => {
+    const response = await api.put(`/auth/chapters/${chapterId}/scratch/`, { body });
+    return noteSchema.parse(response.data);
+  },
+
+  // === Co-reading: smart AI actions ===
+  explainPassage: async (
+    chapterId: string,
+    payload: {
+      passage: string;
+      document?: string | null;
+      anchor_start?: number | null;
+      anchor_end?: number | null;
+    },
+  ): Promise<NoteDTO> => {
+    const response = await api.post(`/auth/chapters/${chapterId}/explain/`, payload);
+    return noteSchema.parse(response.data);
+  },
+  notesToFlashcards: async (
+    chapterId: string,
+    noteIds: string[],
+  ): Promise<FlashCard[]> => {
+    const response = await api.post(
+      `/auth/chapters/${chapterId}/notes-to-flashcards/`,
+      { note_ids: noteIds },
+    );
+    return z.array(flashCardSchema).parse(response.data);
+  },
+  synthesizeNotes: async (chapterId: string): Promise<string> => {
+    const response = await api.post(`/auth/chapters/${chapterId}/synthesize-notes/`);
+    return z.object({ summary: z.string() }).parse(response.data).summary;
   },
 
 };

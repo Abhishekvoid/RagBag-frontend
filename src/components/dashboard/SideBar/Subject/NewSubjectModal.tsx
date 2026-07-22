@@ -64,7 +64,7 @@ export function NewSubjectModal() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[425px] bg-white/10 backdrop-blur-lg border border-white/20">
+      <DialogContent className="sm:max-w-[425px] bg-popover/90 backdrop-blur-xl backdrop-saturate-150 border border-border shadow-[0_32px_70px_-40px_rgba(0,0,0,0.6),inset_0_1px_0_rgba(255,255,255,0.08)]">
         <Form {...form}>
           {/* ✅ CHANGED: The onSubmit handler is now connected to the form */}
           <form onSubmit={form.handleSubmit(onSubmit, onError)} className="space-y-4">

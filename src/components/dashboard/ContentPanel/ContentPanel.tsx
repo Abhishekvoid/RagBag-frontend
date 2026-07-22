@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNotebookStore } from "@/lib/store/useNotebook";
 import { ChatView } from "./ChatView";
 import { AddSourceView } from "./AddSourceView";
+import { IngestionProgress } from "./IngestionProgress";
 
 // ── Processing Card ───────────────────────────────────────────────────────────
 
@@ -88,9 +89,8 @@ function ProcessingCard() {
                 )}
               </div>
               <span
-                className={`text-[13px] flex-1 transition-colors ${
-                  done || active ? "text-foreground" : "text-muted-foreground"
-                } ${active ? "font-medium" : ""}`}
+                className={`text-[13px] flex-1 transition-colors ${done || active ? "text-foreground" : "text-muted-foreground"
+                  } ${active ? "font-medium" : ""}`}
               >
                 {step.label}
               </span>
@@ -148,6 +148,23 @@ function Shell({ children }: { children: React.ReactNode }) {
 export function ContentPanel() {
   const activeChapterId = useNotebookStore((s) => s.activeChapterId);
   const fetchSubjects = useNotebookStore((s) => s.fetchSubjects);
+  const ingestions = useNotebookStore((s) => s.ingestions);
+  const pollIngestions = useNotebookStore((s) => s.pollIngestions);
+
+  const inFlight = Object.values(ingestions);
+
+  // Polling backstop: while any ingestion is unfinished, reconcile with the
+  // server so the card still advances/completes if live WS events don't arrive.
+  const hasInFlightIngestion = inFlight.some(
+    (i) => i.phase !== "ready" && i.phase !== "failed",
+  );
+  useEffect(() => {
+    if (!hasInFlightIngestion) return;
+    const t = setInterval(() => {
+      pollIngestions();
+    }, 3500);
+    return () => clearInterval(t);
+  }, [hasInFlightIngestion, pollIngestions]);
 
   const activeChapter = useNotebookStore((s) =>
     s.subjects
@@ -162,6 +179,21 @@ export function ContentPanel() {
     (d) => d.status === "PROCESSING" || d.status === "PENDING",
   );
   const hasFailed = documents.some((d) => d.status === "FAILED");
+
+  // The live phase checklist must belong to *this* chapter, otherwise an
+  // unrelated in-flight (or stuck/failed) upload would hijack the panel and
+  // make an already-indexed chapter unreachable. Ingestions carry a chapterId
+  // once the backend knows it; a not-yet-known upload (chapterId still null,
+  // e.g. a fresh upload or a coarse seed) is only surfaced when this chapter
+  // has nothing completed to show — preserving the "no blank gap on upload"
+  // behavior without covering a ready chapter.
+  const activeIngestion = inFlight.find((i) =>
+    i.phase === "ready"
+      ? false
+      : i.chapterId
+        ? i.chapterId === activeChapterId
+        : !hasCompleted,
+  );
 
   // Poll every 3s while processing so stale state auto-resolves
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -181,6 +213,17 @@ export function ContentPanel() {
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, [isProcessing, fetchSubjects]);
+
+  // ── A document is actively ingesting — show the live phase checklist ──
+  if (activeIngestion) {
+    return (
+      <Shell>
+        <div className="flex-1 flex items-center justify-center p-6">
+          <IngestionProgress ingestion={activeIngestion} />
+        </div>
+      </Shell>
+    );
+  }
 
   // ── No chapter selected ──
   if (!activeChapter) {
