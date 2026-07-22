@@ -25,6 +25,8 @@ import {
   flashCardUpdateSchema,
   noteSchema,
   documentContentSchema,
+  documentPageSchema,
+  DocumentPageDTO,
   NoteDTO,
   NoteCreateInput,
   DocumentContentDTO,
@@ -68,6 +70,9 @@ export const notebookApi = {
   createChapter: (data: ChapterInput) =>
     api.post<ChapterDTO>("/auth/chapters/", data).then((res) => res.data),
   deleteChapter: (id: string) => api.delete(`/auth/chapters/${id}/`),
+  // Reassign a chapter to a subject (or null to make it loose/unassigned).
+  moveChapter: (id: string, subject: string | null) =>
+    api.patch(`/auth/chapters/${id}/`, { subject }),
 
   // === Documents ===
   fetchDocuments: () => api.get<DocumentDTO[]>("/auth/documents/"),
@@ -175,6 +180,11 @@ export const notebookApi = {
   fetchDocumentContent: async (id: string): Promise<DocumentContentDTO> => {
     const response = await api.get(`/auth/documents/${id}/content/`);
     return documentContentSchema.parse(response.data);
+  },
+
+  fetchDocumentPages: async (id: string): Promise<DocumentPageDTO[]> => {
+    const response = await api.get(`/auth/documents/${id}/pages/`);
+    return z.array(documentPageSchema).parse(response.data);
   },
 
   // === Co-reading: notes CRUD ===

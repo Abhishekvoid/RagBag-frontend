@@ -1,5 +1,8 @@
+"use client";
+
 import React from 'react';
-import { ChevronRight, ChevronDown, Folder, Plus, Trash2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ChevronRight, ChevronDown, Folder, Plus, Trash2, Waypoints } from 'lucide-react';
 import { motion, AnimatePresence, useReducedMotion } from 'motion/react';
 import { cn } from '@/lib/utils';
 
@@ -77,6 +80,7 @@ export const SubjectItem = React.memo(function SubjectItem({
   onDeleteChapter,
 }: SubjectItemProps) {
   const reduce = useReducedMotion();
+  const router = useRouter();
 
   if (!Array.isArray(subject.chapters)) {
     return null;
@@ -113,6 +117,17 @@ export const SubjectItem = React.memo(function SubjectItem({
         </div>
 
         <div className="ml-auto flex items-center gap-0.5">
+          <button
+            onClick={(e) => {
+              e.stopPropagation(); // Prevent toggle on open
+              router.push("/dashboard/canvas");
+            }}
+            aria-label="Open knowledge canvas"
+            title="Open knowledge canvas"
+            className="p-1 rounded-md hover:bg-background/50 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+          >
+            <Waypoints size={15} className="text-muted-foreground hover:text-primary" />
+          </button>
           <button
             onClick={(e) => {
               e.stopPropagation(); // Prevent toggle on add

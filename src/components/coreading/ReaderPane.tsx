@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, useCallback } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { PenLine, Sparkles, MessageCircleQuestion } from "lucide-react";
 import { useCoReadingStore } from "@/lib/store/useCoReading";
 import {
@@ -47,6 +48,7 @@ export function ReaderPane({ chapterId, docId, rawText }: ReaderPaneProps) {
   const askAbout = useCoReadingStore((s) => s.askAbout);
   const setTab = useCoReadingStore((s) => s.setTab);
 
+  const reduce = useReducedMotion();
   const fullText = useMemo(() => cleanExtractedText(rawText), [rawText]);
   const paragraphs = useMemo(() => toParagraphs(fullText), [fullText]);
 
@@ -236,13 +238,29 @@ export function ReaderPane({ chapterId, docId, rawText }: ReaderPaneProps) {
         })}
       </article>
 
-      {sel && (
-        <div
+      <AnimatePresence>
+        {sel && (
+        <motion.div
+          key="sel-toolbar"
           className="absolute z-30 -translate-x-1/2 -translate-y-full"
           style={{ top: sel.top, left: sel.left }}
           onMouseDown={(e) => e.preventDefault()}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.1 }}
         >
-          <div className="flex items-center gap-0.5 rounded-xl border border-border bg-popover/95 p-1 shadow-[0_16px_40px_-16px_rgba(0,0,0,0.5)] backdrop-blur-xl">
+          <motion.div
+            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 6, scale: 0.96 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, y: 4, scale: 0.97 }}
+            transition={
+              reduce
+                ? { duration: 0.1 }
+                : { type: "spring", stiffness: 440, damping: 30 }
+            }
+            className="flex items-center gap-0.5 rounded-xl border border-border bg-popover/95 p-1 shadow-[0_16px_40px_-16px_rgba(0,0,0,0.5)] backdrop-blur-xl"
+          >
             <div className="flex items-center gap-1 px-1">
               {HIGHLIGHT_COLORS.map((c) => (
                 <button
@@ -269,9 +287,10 @@ export function ReaderPane({ chapterId, docId, rawText }: ReaderPaneProps) {
             <ActionBtn label="Ask" onClick={doAsk}>
               <MessageCircleQuestion size={15} />
             </ActionBtn>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

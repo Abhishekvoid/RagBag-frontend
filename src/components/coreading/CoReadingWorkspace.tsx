@@ -2,10 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Split from "react-split";
 import { ArrowLeft, BookOpenText, ChevronDown, FileText } from "lucide-react";
 import { useCoReadingStore } from "@/lib/store/useCoReading";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { ReaderPane } from "./ReaderPane";
+import { PageReader } from "./PageReader";
 import { ThinkingRail } from "./ThinkingRail";
 import type { Chapter } from "@/lib/store/useNotebook";
 import { cn } from "@/lib/utils";
@@ -126,27 +127,42 @@ export function CoReadingWorkspace({ chapter }: { chapter: Chapter }) {
       )}
 
       {/* Body */}
-      <div className="flex min-h-0 flex-1">
-        {/* Reader */}
-        <div
-          className={cn(
-            "min-w-0 flex-1",
-            !isDesktop && mobilePane !== "read" && "hidden",
-          )}
+      {isDesktop ? (
+        // Desktop: reader + rail are resizable against each other (drag the
+        // gutter). react-split injects a .gutter.gutter-horizontal handle,
+        // styled in global.css, so it replaces the rail's left border.
+        <Split
+          direction="horizontal"
+          sizes={[62, 38]}
+          minSize={[420, 360]}
+          gutterSize={10}
+          className="flex min-h-0 flex-1"
         >
-          <ReaderContent content={content} chapterId={chapter.id} docId={activeDocId} />
-        </div>
+          <div className="h-full min-w-0 overflow-hidden">
+            <ReaderContent content={content} chapterId={chapter.id} docId={activeDocId} />
+          </div>
+          <div className="h-full min-w-0 overflow-hidden">
+            <ThinkingRail chapter={chapter} docTitles={docTitles} />
+          </div>
+        </Split>
+      ) : (
+        <div className="flex min-h-0 flex-1">
+          {/* Reader */}
+          <div className={cn("min-w-0 flex-1", mobilePane !== "read" && "hidden")}>
+            <ReaderContent content={content} chapterId={chapter.id} docId={activeDocId} />
+          </div>
 
-        {/* Rail */}
-        <div
-          className={cn(
-            "border-l border-border",
-            isDesktop ? "w-[400px] shrink-0" : mobilePane === "work" ? "flex-1" : "hidden",
-          )}
-        >
-          <ThinkingRail chapter={chapter} docTitles={docTitles} />
+          {/* Rail */}
+          <div
+            className={cn(
+              "border-l border-border",
+              mobilePane === "work" ? "flex-1" : "hidden",
+            )}
+          >
+            <ThinkingRail chapter={chapter} docTitles={docTitles} />
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -171,7 +187,9 @@ function ReaderContent({
   if (content.status === "error") {
     return <CenterMsg>{content.message}</CenterMsg>;
   }
-  return <ReaderPane chapterId={chapterId} docId={docId} rawText={content.content.text} />;
+  return (
+    <PageReader chapterId={chapterId} docId={docId} fallbackText={content.content.text} />
+  );
 }
 
 function ReaderSkeleton() {

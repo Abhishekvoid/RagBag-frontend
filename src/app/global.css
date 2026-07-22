@@ -82,6 +82,7 @@
   --border: #D6CFBD;
   --input: #D6CFBD;
   --ring: #BF4630;
+  --canvas-dot: #B7AB93;              /* graphite dots — needs more contrast on light paper */
   --radius: 0.75rem;
 
   --glow: 191 70 48;                  /* rgb of the vermillion accent (focus rings) */
@@ -116,6 +117,7 @@
   --border: #2C2A22;
   --input: #302E26;
   --ring: #D6583F;
+  --canvas-dot: #2C2A22;              /* onyx dots — already read fine (= border) */
   --radius: 0.75rem;
 
   --glow: 214 88 63;
@@ -262,6 +264,58 @@
     transition-duration: 0.01ms !important;
   }
   .aurora, .olive-pulse { animation: none !important; }
+}
+
+/* ============================================================
+   React Flow (spatial knowledge canvas) — skinned to Paper/Onyx.
+   Custom nodes carry their own token classes; this themes the chrome
+   (edges, controls, minimap) via React Flow's CSS variables.
+   ============================================================ */
+.react-flow {
+  --xy-background-color: var(--background);
+  --xy-edge-stroke-default: var(--border);
+  --xy-edge-stroke-width-default: 1.5;
+  --xy-controls-button-background-color-default: color-mix(in srgb, var(--card) 85%, transparent);
+  --xy-controls-button-background-color-hover-default: var(--secondary);
+  --xy-controls-button-color-default: var(--muted-foreground);
+  --xy-controls-button-color-hover-default: var(--foreground);
+  --xy-controls-button-border-color-default: var(--border);
+  --xy-minimap-background-color-default: color-mix(in srgb, var(--card) 82%, transparent);
+}
+.react-flow__controls {
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  box-shadow: 0 18px 44px -32px rgba(0, 0, 0, 0.5);
+}
+.react-flow__minimap {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+.react-flow__edge-path {
+  transition: stroke 0.2s ease;
+}
+/* Edges draw themselves in on mount (initial load + when a chapter is
+   reassigned and a new edge appears). pathLength=1 normalises the dash. */
+@keyframes rf-edge-draw {
+  from { stroke-dashoffset: 1; }
+  to { stroke-dashoffset: 0; }
+}
+.rf-edge-draw {
+  stroke-dasharray: 1;
+  animation: rf-edge-draw 0.55s var(--ease-out-soft) forwards;
+}
+/* One-shot ring flash on a subject hub when a chapter lands in it. */
+@keyframes hub-pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(var(--glow) / 0.5); }
+  100% { box-shadow: 0 0 0 14px rgba(var(--glow) / 0); }
+}
+.hub-pulse { animation: hub-pulse-ring 0.6s var(--ease-out-soft); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rf-edge-draw { animation: none; stroke-dasharray: none; }
+  .hub-pulse { animation: none; }
 }
 
 /* react-split resize gutters: thin centered divider, olive on hover */

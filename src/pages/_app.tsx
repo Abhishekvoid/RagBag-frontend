@@ -17,8 +17,8 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <ThemeProvider
       attribute="class"
-      defaultTheme="system"
-      enableSystem
+      defaultTheme="light"
+      enableSystem={false}
       disableTransitionOnChange
     >
       <div className={`${manrope.variable} ${cabinetGrotesk.variable} ${jetbrainsMono.variable} font-sans`}>

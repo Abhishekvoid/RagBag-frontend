@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { MessageSquare, NotebookPen } from "lucide-react";
 import { useCoReadingStore } from "@/lib/store/useCoReading";
 import { ChatTab } from "./ChatTab";
@@ -17,11 +18,12 @@ export function ThinkingRail({
   const tab = useCoReadingStore((s) => s.tab);
   const setTab = useCoReadingStore((s) => s.setTab);
   const noteCount = useCoReadingStore((s) => s.notesByChapter[chapter.id])?.length ?? 0;
+  const reduce = useReducedMotion();
 
   return (
     <div className="flex h-full flex-col bg-card/40">
       {/* Segmented toggle */}
-      <div className="shrink-0 px-3 pt-3">
+      <div className="shrink-0 border-b border-border px-3 py-3">
         <div className="flex rounded-xl border border-border bg-background/60 p-0.5">
           <SegBtn active={tab === "chat"} onClick={() => setTab("chat")}>
             <MessageSquare size={14} /> Chat
@@ -44,12 +46,23 @@ export function ThinkingRail({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1">
-        {tab === "chat" ? (
-          <ChatTab chapter={chapter} />
-        ) : (
-          <NotesTab chapterId={chapter.id} docTitles={docTitles} />
-        )}
+      <div className="relative min-h-0 flex-1">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={tab}
+            className="h-full"
+            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={reduce ? { opacity: 0 } : { opacity: 0, y: -5 }}
+            transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+          >
+            {tab === "chat" ? (
+              <ChatTab chapter={chapter} />
+            ) : (
+              <NotesTab chapterId={chapter.id} docTitles={docTitles} />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );

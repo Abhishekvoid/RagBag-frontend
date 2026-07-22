@@ -193,6 +193,15 @@ export const documentContentSchema = z.object({
 });
 export type DocumentContentDTO = z.infer<typeof documentContentSchema>;
 
+// A reconstructed page from the vision pipeline.
+export const documentPageSchema = z.object({
+  page_number: z.number(),
+  image_url: z.string(),
+  reconstructed_md: z.string(),
+  text_source: z.enum(["layer", "vision", "fallback"]),
+});
+export type DocumentPageDTO = z.infer<typeof documentPageSchema>;
+
 // Payload for creating a note (chapter comes from the URL).
 export type NoteCreateInput = {
   kind: NoteKind;

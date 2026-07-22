@@ -99,6 +99,10 @@ type NotebookActions = {
   retryIngestion: (documentId: string) => Promise<void>;
   seedInFlightIngestions: () => Promise<void>;
   pollIngestions: () => Promise<void>;
+  // Reassign a chapter to another subject (targetSubjectId), or make it loose
+  // ("uncategorized-chapters" or null). Its chats/flashcards/questions/notes
+  // are chapter-scoped and move with it.
+  moveChapter: (chapterId: string, targetSubjectId: string | null) => Promise<void>;
 };
 
 // Prefer an explicit WS URL; otherwise derive it from the API host so the socket
@@ -562,6 +566,72 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
             }),
             activeChapterId: prevActiveChapterId,
             error: "Failed to delete chapter",
+          }));
+        }
+      },
+
+      moveChapter: async (chapterId, targetSubjectId) => {
+        const LOOSE = "uncategorized-chapters";
+        const toLoose =
+          targetSubjectId === null || targetSubjectId === LOOSE;
+        const apiSubject = toLoose ? null : targetSubjectId;
+        const destId = toLoose ? LOOSE : targetSubjectId;
+
+        const prevSubjects = get().subjects;
+        let fromId: string | null = null;
+        let fromIndex = -1;
+        let chapter: Chapter | undefined;
+        for (const subject of prevSubjects) {
+          const idx = subject.chapters.findIndex((c) => c.id === chapterId);
+          if (idx !== -1) {
+            fromId = subject.id;
+            fromIndex = idx;
+            chapter = subject.chapters[idx];
+            break;
+          }
+        }
+        // No-op if the chapter isn't found or is already in the destination.
+        if (!chapter || fromId === destId) return;
+
+        const moved: Chapter = { ...chapter, subject: apiSubject };
+
+        // Optimistic: pull from the old home, drop into the destination.
+        set((state) => ({
+          subjects: state.subjects.map((subject) => {
+            if (subject.id === fromId) {
+              return {
+                ...subject,
+                chapters: subject.chapters.filter((c) => c.id !== chapterId),
+              };
+            }
+            if (subject.id === destId) {
+              return { ...subject, chapters: [...subject.chapters, moved] };
+            }
+            return subject;
+          }),
+        }));
+
+        try {
+          await notebookApi.moveChapter(chapterId, apiSubject);
+        } catch (err) {
+          console.error("NotebookStore Error - moveChapter:", err);
+          // Rollback: remove from destination, restore to its old slot.
+          set((state) => ({
+            subjects: state.subjects.map((subject) => {
+              if (subject.id === destId) {
+                return {
+                  ...subject,
+                  chapters: subject.chapters.filter((c) => c.id !== chapterId),
+                };
+              }
+              if (subject.id === fromId) {
+                const restored = [...subject.chapters];
+                restored.splice(fromIndex, 0, chapter!);
+                return { ...subject, chapters: restored };
+              }
+              return subject;
+            }),
+            error: "Failed to move chapter",
           }));
         }
       },
