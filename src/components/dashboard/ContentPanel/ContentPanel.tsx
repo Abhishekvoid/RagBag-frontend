@@ -151,11 +151,7 @@ export function ContentPanel() {
   const ingestions = useNotebookStore((s) => s.ingestions);
   const pollIngestions = useNotebookStore((s) => s.pollIngestions);
 
-  // The most recent in-flight ingestion drives the live phase checklist.
-  // This takes priority so the upload never leaves a blank gap — even before
-  // a chapter exists to select.
   const inFlight = Object.values(ingestions);
-  const activeIngestion = inFlight[inFlight.length - 1];
 
   // Polling backstop: while any ingestion is unfinished, reconcile with the
   // server so the card still advances/completes if live WS events don't arrive.
@@ -183,6 +179,21 @@ export function ContentPanel() {
     (d) => d.status === "PROCESSING" || d.status === "PENDING",
   );
   const hasFailed = documents.some((d) => d.status === "FAILED");
+
+  // The live phase checklist must belong to *this* chapter, otherwise an
+  // unrelated in-flight (or stuck/failed) upload would hijack the panel and
+  // make an already-indexed chapter unreachable. Ingestions carry a chapterId
+  // once the backend knows it; a not-yet-known upload (chapterId still null,
+  // e.g. a fresh upload or a coarse seed) is only surfaced when this chapter
+  // has nothing completed to show — preserving the "no blank gap on upload"
+  // behavior without covering a ready chapter.
+  const activeIngestion = inFlight.find((i) =>
+    i.phase === "ready"
+      ? false
+      : i.chapterId
+        ? i.chapterId === activeChapterId
+        : !hasCompleted,
+  );
 
   // Poll every 3s while processing so stale state auto-resolves
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);

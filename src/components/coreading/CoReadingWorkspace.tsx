@@ -20,6 +20,7 @@ export function CoReadingWorkspace({ chapter }: { chapter: Chapter }) {
   const contentByDoc = useCoReadingStore((s) => s.contentByDoc);
   const loadDocumentContent = useCoReadingStore((s) => s.loadDocumentContent);
   const loadNotes = useCoReadingStore((s) => s.loadNotes);
+  const clearSynth = useCoReadingStore((s) => s.clearSynth);
 
   // Only completed documents can be read.
   const readableDocs = useMemo(
@@ -31,10 +32,12 @@ export function CoReadingWorkspace({ chapter }: { chapter: Chapter }) {
     [readableDocs],
   );
 
-  // Load notes for the chapter once.
+  // Load notes for the chapter. synthResult is a single global field, so clear
+  // the previous chapter's study sheet on switch to avoid leaking it here.
   useEffect(() => {
+    clearSynth();
     loadNotes(chapter.id);
-  }, [chapter.id, loadNotes]);
+  }, [chapter.id, loadNotes, clearSynth]);
 
   // Default the active doc to the most recent completed one.
   useEffect(() => {

@@ -254,6 +254,8 @@ function ScratchPad({ chapterId }: { chapterId: string }) {
   const [value, setValue] = useState("");
   const [open, setOpen] = useState(false);
   const loadedRef = useRef(false);
+  // Which chapter's server copy we've adopted into `value`.
+  const syncedChapterRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (open && !loadedRef.current) {
@@ -262,9 +264,17 @@ function ScratchPad({ chapterId }: { chapterId: string }) {
     }
   }, [open, chapterId, loadScratch]);
 
+  // Adopt the server copy once per chapter (initial load / chapter switch).
+  // Later `scratch` identity changes are our own save echoes; re-running
+  // setValue on those would overwrite keystrokes typed while a save was in
+  // flight, silently reverting the newest text.
   useEffect(() => {
-    if (scratch) setValue(scratch.body);
-  }, [scratch]);
+    if (syncedChapterRef.current === chapterId) return;
+    if (scratch) {
+      setValue(scratch.body);
+      syncedChapterRef.current = chapterId;
+    }
+  }, [scratch, chapterId]);
 
   // Debounced autosave.
   useEffect(() => {

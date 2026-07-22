@@ -165,9 +165,12 @@ export function ReaderPane({ chapterId, docId, rawText }: ReaderPaneProps) {
   const doExplain = async () => {
     if (!sel) return;
     const payload = { passage: sel.quoted, document: docId, anchorStart: sel.start, anchorEnd: sel.end };
+    // Await before clearing the selection so the toolbar stays mounted and its
+    // busy spinner (gated on `sel` + `explainingFor`) is visible while the AI
+    // request is in flight — matching doHighlight/doNote.
+    await explain(chapterId, payload);
     clearSel();
     window.getSelection()?.removeAllRanges();
-    await explain(chapterId, payload);
   };
 
   const doAsk = () => {

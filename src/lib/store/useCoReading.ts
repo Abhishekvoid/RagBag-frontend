@@ -152,12 +152,18 @@ export const useCoReadingStore = create<CoReadingState & CoReadingActions>(
     },
 
     editNote: async (chapterId, noteId, body) => {
-      // optimistic
-      const prev = get().notesByChapter[chapterId] ?? [];
+      // Optimistic, off current state; capture only this note's prior body so a
+      // failure reverts just this change — never a stale whole-array snapshot
+      // that would clobber other notes edited/recolored/deleted in the meantime.
+      const prevBody = (get().notesByChapter[chapterId] ?? []).find(
+        (n) => n.id === noteId,
+      )?.body;
       set((s) => ({
         notesByChapter: {
           ...s.notesByChapter,
-          [chapterId]: prev.map((n) => (n.id === noteId ? { ...n, body } : n)),
+          [chapterId]: (s.notesByChapter[chapterId] ?? []).map((n) =>
+            n.id === noteId ? { ...n, body } : n,
+          ),
         },
       }));
       try {
@@ -165,19 +171,28 @@ export const useCoReadingStore = create<CoReadingState & CoReadingActions>(
       } catch (err) {
         console.error("editNote failed:", err);
         set((s) => ({
-          notesByChapter: { ...s.notesByChapter, [chapterId]: prev },
+          notesByChapter: {
+            ...s.notesByChapter,
+            [chapterId]: (s.notesByChapter[chapterId] ?? []).map((n) =>
+              n.id === noteId ? { ...n, body: prevBody ?? n.body } : n,
+            ),
+          },
           actionError: "Could not update note.",
         }));
       }
     },
 
     recolorNote: async (chapterId, noteId, color) => {
-      const prev = get().notesByChapter[chapterId] ?? [];
+      const prevColor = (get().notesByChapter[chapterId] ?? []).find(
+        (n) => n.id === noteId,
+      )?.color;
       set((s) => ({
         lastColor: color,
         notesByChapter: {
           ...s.notesByChapter,
-          [chapterId]: prev.map((n) => (n.id === noteId ? { ...n, color } : n)),
+          [chapterId]: (s.notesByChapter[chapterId] ?? []).map((n) =>
+            n.id === noteId ? { ...n, color } : n,
+          ),
         },
       }));
       try {
@@ -185,17 +200,26 @@ export const useCoReadingStore = create<CoReadingState & CoReadingActions>(
       } catch (err) {
         console.error("recolorNote failed:", err);
         set((s) => ({
-          notesByChapter: { ...s.notesByChapter, [chapterId]: prev },
+          notesByChapter: {
+            ...s.notesByChapter,
+            [chapterId]: (s.notesByChapter[chapterId] ?? []).map((n) =>
+              n.id === noteId ? { ...n, color: prevColor ?? n.color } : n,
+            ),
+          },
         }));
       }
     },
 
     removeNote: async (chapterId, noteId) => {
-      const prev = get().notesByChapter[chapterId] ?? [];
+      const removed = (get().notesByChapter[chapterId] ?? []).find(
+        (n) => n.id === noteId,
+      );
       set((s) => ({
         notesByChapter: {
           ...s.notesByChapter,
-          [chapterId]: prev.filter((n) => n.id !== noteId),
+          [chapterId]: (s.notesByChapter[chapterId] ?? []).filter(
+            (n) => n.id !== noteId,
+          ),
         },
       }));
       try {
@@ -203,7 +227,12 @@ export const useCoReadingStore = create<CoReadingState & CoReadingActions>(
       } catch (err) {
         console.error("removeNote failed:", err);
         set((s) => ({
-          notesByChapter: { ...s.notesByChapter, [chapterId]: prev },
+          notesByChapter: {
+            ...s.notesByChapter,
+            [chapterId]: removed
+              ? sortNotes([...(s.notesByChapter[chapterId] ?? []), removed])
+              : s.notesByChapter[chapterId] ?? [],
+          },
           actionError: "Could not delete note.",
         }));
       }
