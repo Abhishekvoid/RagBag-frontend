@@ -5,13 +5,12 @@ import { AxiosError } from "axios";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
 
 import { loginSchema, type LoginInput } from "@/features/auth/auth.schemas";
 import api from "@/lib/axios";
 import { setUser } from "@/utils/storage";
 import { setAccessToken } from "@/lib/authToken";
-import { Field, PrimaryButton, GoogleButton } from "@/components/ui/kit";
+import { Field, PrimaryButton } from "@/components/ui/kit";
 
 export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -94,13 +93,6 @@ export function LoginForm() {
         {isLoading ? "Signing in…" : "Sign in"}
       </PrimaryButton>
 
-      <div className="my-1 flex items-center gap-3 text-[12px] text-muted-foreground">
-        <span className="h-px flex-1 bg-border" />
-        or continue with
-        <span className="h-px flex-1 bg-border" />
-      </div>
-
-      <GoogleButton type="button" onClick={() => signIn("google", { callbackUrl: "/dashboard" })} />
     </form>
   );
 }

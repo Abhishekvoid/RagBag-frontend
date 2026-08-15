@@ -7,8 +7,6 @@ import localFont from "next/font/local";
 
 import { ThemeProvider } from "@/components/theme-provider";
 
-import { SessionProvider } from "next-auth/react";
-
 const manrope = Manrope({
   variable: "--font-manrope",
   subsets: ["latin"],
@@ -38,16 +36,14 @@ export default function RootLayout({
         className={`${manrope.variable} ${cabinetGrotesk.variable} ${jetbrainsMono.variable} font-sans antialiased`}
       >
         
-        <SessionProvider>
-          <ThemeProvider
-            attribute="class"
-            defaultTheme="light"
-            enableSystem={false}
-            disableTransitionOnChange
-          >
-            {children}
-          </ThemeProvider>
-        </SessionProvider>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
+          {children}
+        </ThemeProvider>
       </body>
     </html>
   );

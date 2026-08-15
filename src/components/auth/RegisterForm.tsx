@@ -4,12 +4,11 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
 import { AxiosError } from "axios";
 
 import { registerSchema, type RegisterInput } from "@/features/auth/auth.schemas";
 import api from "@/lib/axios";
-import { Field, PrimaryButton, GoogleButton } from "@/components/ui/kit";
+import { Field, PrimaryButton } from "@/components/ui/kit";
 
 export function RegisterForm() {
   const [isLoading, setIsLoading] = useState(false);
@@ -118,13 +117,6 @@ export function RegisterForm() {
         {isLoading ? "Creating account…" : "Create account"}
       </PrimaryButton>
 
-      <div className="my-1 flex items-center gap-3 text-[12px] text-muted-foreground">
-        <span className="h-px flex-1 bg-border" />
-        or continue with
-        <span className="h-px flex-1 bg-border" />
-      </div>
-
-      <GoogleButton type="button" onClick={() => signIn("google", { callbackUrl: "/dashboard" })} />
     </form>
   );
 }
