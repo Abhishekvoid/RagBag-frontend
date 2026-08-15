@@ -34,6 +34,12 @@ import {
 import axios from "axios";
 
 export const notebookApi = {
+  // Short-lived, single-use credential for the notifications socket. The JWT is
+  // sent here in an Authorization header and never placed in the socket URL.
+  createWsTicket: async (): Promise<string> => {
+    const response = await api.post("/auth/ws-ticket/");
+    return response.data.ticket;
+  },
   // === Subjects ===
   fetchSubjects: async () => {
     const response = await api.get("/auth/subjects/");

@@ -27,9 +27,6 @@ interface NotebookSidebarProps {
   floating?: boolean;
 }
 
-// const WS_BASE =
-//   process.env.NEXT_PUBLIC_WS_URL ||
-//   "wss://ragbag-backend-production.up.railway.app";
 export function NotebookSidebar({ onCollapse, onPin, floating = false }: NotebookSidebarProps = {}) {
   const {
     subjects,
@@ -83,25 +80,8 @@ export function NotebookSidebar({ onCollapse, onPin, floating = false }: Noteboo
     fetchSubjects();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // WebSocket logic
-  // useEffect(() => {
-  //   const authToken = getAccessToken(); 
-  //   if (!authToken) return;
-
-  //   const ws = new WebSocket(`${WS_BASE}/ws/notifications/?token=${authToken}`);
-
-  //   ws.onmessage = (event) => {
-  //     try {
-  //       const data = JSON.parse(event.data);
-  //       if (data.message === "notebook_updated") {
-  //         fetchSubjects(); 
-  //       }
-  //     } catch (e) {
-  //       console.error("WebSocket error", e);
-  //     }
-  //   };
-  //   return () => ws.close();
-  // }, [fetchSubjects]);
+  // WebSocket handling lives in the notebook store (initWebSocket), which now
+  // authenticates with a short-lived ticket instead of the JWT.
 
   // Filter logic
   const filteredSubjects = useMemo(() => {

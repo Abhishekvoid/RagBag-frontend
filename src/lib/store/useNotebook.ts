@@ -25,6 +25,8 @@ import {
 } from "@/features/notebook/ingestion";
 
 let ws: WebSocket | null = null;
+// Guards against stacking reconnect timers when close and ticket-failure races.
+let wsRetry: ReturnType<typeof setTimeout> | null = null;
 
 // ============ TYPES =============
 
@@ -82,7 +84,7 @@ type NotebookActions = {
   deleteChapter: (id: string) => Promise<void>;
   setActiveChapter: (chapterId: string | null) => void;
   getActiveChapter: () => Chapter | null;
-  initWebSocket: () => void;
+  initWebSocket: () => Promise<void>;
   sendMessage: (text: string) => Promise<void>;
   loadChatHistory: (chapterId: string) => Promise<void>;
   loadMoreMessages: (chapterId: string) => Promise<void>;
@@ -108,12 +110,25 @@ type NotebookActions = {
 // Prefer an explicit WS URL; otherwise derive it from the API host so the socket
 // always follows the same backend as REST (http→ws, https→wss). Falling back to
 // a hardcoded prod host is what made a local browser talk to production while
-// local Celery pushed events nobody was listening for.
-const WS_BASE =
-  process.env.NEXT_PUBLIC_WS_URL ||
-  (process.env.NEXT_PUBLIC_API_URL
-    ? process.env.NEXT_PUBLIC_API_URL.replace(/^http/, "ws")
-    : "wss://ragbag-backend-production.up.railway.app");
+// local Celery pushed events nobody was listening for — and a stale fallback
+// host is worse than no socket at all, because the connection URL carries a
+// credential. Misconfiguration must be loud and local, never a silent
+// connection to someone else's domain.
+//
+// NOTE: NEXT_PUBLIC_* are inlined at BUILD time, not read at runtime. In a
+// containerised deploy they must be passed as build args when the image is
+// built; setting them as runtime env vars has no effect.
+function resolveWsBase(): string | null {
+  const explicit = process.env.NEXT_PUBLIC_WS_URL;
+  if (explicit) return explicit.replace(/\/$/, "");
+
+  const api = process.env.NEXT_PUBLIC_API_URL;
+  if (api) return api.replace(/^http/, "ws").replace(/\/$/, "");
+
+  return null;
+}
+
+const WS_BASE = resolveWsBase();
 
 // ==== STORE ===========
 export const useNotebookStore = create<NotebookState & NotebookActions>()(
@@ -127,13 +142,39 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
       currentStudioView: "controls",
       ingestions: {},
       onIngestionReady: undefined,
-      initWebSocket: () => {
-        if (ws) return; 
+      initWebSocket: async () => {
+        if (ws) return;
 
-        const token = getAccessToken(); 
-        if (!token) return;
+        if (!WS_BASE) {
+          console.error(
+            "WebSocket disabled: set NEXT_PUBLIC_WS_URL or NEXT_PUBLIC_API_URL at build time.",
+          );
+          return;
+        }
 
-        ws = new WebSocket(`${WS_BASE}/ws/notifications/?token=${token}`);
+        if (!getAccessToken()) return;
+
+        // Trade the JWT for a short-lived, single-use ticket over authenticated
+        // HTTPS. The token itself never enters the socket URL, because URLs are
+        // logged by load balancers, proxies and browser history.
+        let ticket: string;
+        try {
+          ticket = await notebookApi.createWsTicket();
+        } catch (e) {
+          console.error("WS ticket request failed", e);
+          // Retry on the same cadence as a dropped socket.
+          if (!wsRetry) {
+            wsRetry = setTimeout(() => {
+              wsRetry = null;
+              get().initWebSocket();
+            }, 3000);
+          }
+          return;
+        }
+
+        ws = new WebSocket(
+          `${WS_BASE}/ws/notifications/?ticket=${encodeURIComponent(ticket)}`,
+        );
 
         ws.onopen = () => {
           console.log("WS Connected");
@@ -188,7 +229,14 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
         ws.onclose = () => {
           console.log("WS Disconnected → retrying...");
           ws = null;
-          setTimeout(() => get().initWebSocket(), 3000);
+          // Tickets are single-use, so the reconnect mints a fresh one rather
+          // than replaying the old URL.
+          if (!wsRetry) {
+            wsRetry = setTimeout(() => {
+              wsRetry = null;
+              get().initWebSocket();
+            }, 3000);
+          }
         };
       },
       // --- DATA FETCHING ACTIONS ---
