@@ -261,27 +261,6 @@ export function GhostButton({ className, children, ...props }: BtnProps) {
   );
 }
 
-/** Full-width Google button matching the brand. */
-export function GoogleButton({ className, children = "Continue with Google", ...props }: BtnProps) {
-  return (
-    <button
-      className={cn(
-        "inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-xl border border-border bg-white/[.03]",
-        "text-sm font-medium text-foreground transition-colors hover:bg-white/[.07] active-press",
-        className,
-      )}
-      {...props}
-    >
-      <span
-        className="size-[17px] rounded-full"
-        style={{ background: "conic-gradient(from -45deg,#EA4335,#FBBC05,#34A853,#4285F4,#EA4335)" }}
-        aria-hidden
-      />
-      {children}
-    </button>
-  );
-}
-
 /**
  * Magnetic CTA — pulls toward the cursor. Drives motion values (not React state),
  * collapses to a static PrimaryButton under prefers-reduced-motion.
