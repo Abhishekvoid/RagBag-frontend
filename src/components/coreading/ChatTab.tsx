@@ -7,6 +7,7 @@ import { useCoReadingStore } from "@/lib/store/useCoReading";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AnswerMarkdown } from "@/components/dashboard/ContentPanel/AnswerMarkdown";
+import { ChatEvidence } from "@/components/dashboard/ContentPanel/ChatEvidence";
 import { ChatSkeleton } from "@/components/dashboard/ContentPanel/ChatSkeleton";
 import { cn } from "@/lib/utils";
 
@@ -69,7 +70,7 @@ export function ChatTab({ chapter }: { chapter: Chapter }) {
           </div>
         ) : (
           <div className="space-y-5 px-4 py-5">
-            {messages.map((msg) =>
+            {messages.map((msg, index) =>
               msg.sender === "user" ? (
                 <div key={msg.id} className="flex justify-end">
                   <div className="max-w-[88%] break-words rounded-2xl rounded-br-md bg-secondary px-3.5 py-2.5 text-[14px] leading-relaxed text-foreground">
@@ -79,6 +80,9 @@ export function ChatTab({ chapter }: { chapter: Chapter }) {
               ) : (
                 <div key={msg.id} className="group/msg break-words">
                   <AnswerMarkdown>{msg.text}</AnswerMarkdown>
+                  <ChatEvidence message={msg} chapterId={chapter.id}
+                    retryQuestion={index === messages.length - 1 && messages[index - 1]?.sender === "user"
+                      ? messages[index - 1].text : undefined} />
                   {!msg.error && (
                     <button
                       type="button"

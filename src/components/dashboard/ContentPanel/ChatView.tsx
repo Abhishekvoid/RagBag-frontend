@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ChatSkeleton } from "./ChatSkeleton";
 import { AnswerMarkdown } from "./AnswerMarkdown";
+import { ChatEvidence } from "./ChatEvidence";
 
 // --- Icons ---
 const SendIcon = () => (
@@ -147,7 +148,7 @@ export function ChatView({ chapter }: ChatViewProps) {
           </div>
         ) : (
           <div className="mx-auto max-w-3xl space-y-7 px-5 py-6">
-            {messages.map((msg) =>
+            {messages.map((msg, index) =>
               msg.sender === "user" ? (
                 <div key={msg.id} className="flex justify-end duration-300 animate-in fade-in slide-in-from-bottom-2">
                   <div className="max-w-[82%] break-words rounded-2xl rounded-br-md bg-secondary px-4 py-3 text-[14.5px] leading-relaxed text-foreground">
@@ -160,24 +161,9 @@ export function ChatView({ chapter }: ChatViewProps) {
                   <div className="min-w-0 flex-1 break-words">
                     <AnswerMarkdown>{msg.text}</AnswerMarkdown>
 
-                    {msg.sources && msg.sources.length > 0 && (
-                      <div className="mt-3">
-                        <p className="mb-1.5 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
-                          Sources
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {msg.sources.map((s, i) => (
-                            <span
-                              key={`${s.document_id}-${i}`}
-                              title={s.snippet}
-                              className="max-w-[220px] truncate rounded-md border border-border bg-secondary/40 px-2 py-1 text-[11px] text-muted-foreground"
-                            >
-                              {s.title}
-                            </span>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                    <ChatEvidence message={msg} chapterId={chapter.id}
+                      retryQuestion={index === messages.length - 1 && messages[index - 1]?.sender === "user"
+                        ? messages[index - 1].text : undefined} />
 
                     {msg.id === lastAiMessageId && msg.followups && msg.followups.length > 0 && (
                       <div className="mt-3 flex flex-wrap gap-1.5">

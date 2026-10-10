@@ -115,13 +115,19 @@ export const chatMessageDTOSchema = z.object({
   error: z.string().nullable(),
   created_at: z.string(),
   suggestions: z.array(z.string()).nullable().optional(),
+  is_unanswered: z.boolean().optional().default(false),
 });
 
 export const sourceChipSchema = z.object({
   document_id: z.string(),
   title: z.string(),
   snippet: z.string(),
+  chapter_id: z.string().nullable().optional(),
+  page_number: z.number().int().positive().nullable().optional(),
+  version: z.number().int().nonnegative().nullable().optional(),
+  is_fallback_scope: z.boolean().optional().default(false),
 });
+export type SourceChip = z.infer<typeof sourceChipSchema>;
 
 export const ragChatResponseSchema = z.object({
   id: z.uuid(),
@@ -129,6 +135,7 @@ export const ragChatResponseSchema = z.object({
   text: z.string(),
   sources: z.array(sourceChipSchema).optional().default([]),
   followups: z.array(z.string()).optional().default([]),
+  is_unanswered: z.boolean().optional().default(false),
 });
 
 // History messages come from ChatMessageSerializer, which returns `citations`

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ImageIcon } from "lucide-react";
+import axios from "axios";
 import { notebookApi } from "@/features/notebook/notebook.api";
 import type { DocumentPageDTO } from "@/features/notebook/notebook.schema";
 import { ReaderPane } from "./ReaderPane";
@@ -13,6 +14,7 @@ interface PageReaderProps {
   docId: string;
   chapterId: string;
   fallbackText: string; // flat canonical text, for non-PDF / pre-migration docs
+  citation?: { page: number; version: number };
 }
 
 /**
@@ -20,24 +22,36 @@ interface PageReaderProps {
  * markdown; `[?word]` markers (words the model was unsure of) are tappable and
  * reveal the original page scan so the reader can verify against it.
  */
-export function PageReader({ docId, chapterId, fallbackText }: PageReaderProps) {
+export function PageReader({ docId, chapterId, fallbackText, citation }: PageReaderProps) {
   const [pages, setPages] = useState<DocumentPageDTO[] | null>(null);
-  const [err, setErr] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     let alive = true;
     setPages(null);
-    setErr(false);
+    setErr(null);
     notebookApi
-      .fetchDocumentPages(docId)
+      .fetchDocumentPages(docId, citation?.version)
       .then((p) => alive && setPages(p))
-      .catch(() => alive && setErr(true));
+      .catch((error) => {
+        if (alive) setErr(axios.isAxiosError(error) && error.response?.status === 409
+          ? "This source has changed since the answer was written. Ask again for an updated citation."
+          : "Couldn't load this source. Please reload to try again.");
+      });
     return () => {
       alive = false;
     };
-  }, [docId]);
+  }, [docId, citation?.version]);
+
+  useEffect(() => {
+    if (pages && citation) {
+      const target = ref.current?.querySelector<HTMLElement>(`[data-page="${citation.page}"]`);
+      target?.scrollIntoView({ block: "start", behavior: "instant" });
+      target?.focus({ preventScroll: true });
+    }
+  }, [pages, citation?.page]);
 
   const onScroll = useCallback(() => {
     const el = ref.current;
@@ -46,9 +60,13 @@ export function PageReader({ docId, chapterId, fallbackText }: PageReaderProps) 
     setProgress(max > 0 ? Math.min(1, el.scrollTop / max) : 0);
   }, []);
 
-  // No pages (non-PDF or pre-migration doc) or fetch error -> flat reader on the
-  // canonical text (which still has highlighting/notes).
-  if (err || (pages && pages.length === 0)) {
+  if (err || (pages && citation && !pages.some((p) => p.page_number === citation.page))) {
+    return <p role="alert" className="px-6 py-8 text-sm text-foreground">
+      {err ?? "This cited page is unavailable. Ask again for an updated citation."}
+    </p>;
+  }
+  // Only genuinely unpaginated documents use the flat reader.
+  if (pages && pages.length === 0) {
     return <ReaderPane chapterId={chapterId} docId={docId} rawText={fallbackText} />;
   }
   if (!pages) return <PageSkeleton />;
@@ -66,16 +84,17 @@ export function PageReader({ docId, chapterId, fallbackText }: PageReaderProps) 
         />
       </div>
       {pages.map((p) => (
-        <Page key={p.page_number} page={p} />
+        <Page key={p.page_number} page={p} cited={citation?.page === p.page_number} />
       ))}
     </div>
   );
 }
 
-function Page({ page }: { page: DocumentPageDTO }) {
-  const [showScan, setShowScan] = useState(false);
+function Page({ page, cited }: { page: DocumentPageDTO; cited: boolean }) {
+  const [showScan, setShowScan] = useState(cited);
   return (
-    <section data-page={page.page_number} className="mx-auto mb-12 max-w-[68ch]">
+    <section data-page={page.page_number} tabIndex={-1} aria-label={`Page ${page.page_number}`}
+      className="mx-auto mb-12 max-w-[68ch] focus-visible:outline-2 focus-visible:outline-primary">
       <div className="mb-3 flex items-center justify-between border-b border-border/60 pb-2">
         <span className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground">
           Page {page.page_number}

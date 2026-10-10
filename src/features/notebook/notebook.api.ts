@@ -106,11 +106,13 @@ export const notebookApi = {
   sendRagMessage: async (payload: {
     chapterId: string;
     text: string;
+    allowLibraryFallback?: boolean;
   }): Promise<RagChatMessageDTO> => {
     try {
       const apiPayload = {
         chapter: payload.chapterId,
         text: payload.text,
+        allow_library_fallback: payload.allowLibraryFallback ?? false,
       };
       const response = await api.post("/auth/rag-chat/", apiPayload);
       return ragChatResponseSchema.parse(response.data);
@@ -180,8 +182,8 @@ export const notebookApi = {
     return documentContentSchema.parse(response.data);
   },
 
-  fetchDocumentPages: async (id: string): Promise<DocumentPageDTO[]> => {
-    const response = await api.get(`/auth/documents/${id}/pages/`);
+  fetchDocumentPages: async (id: string, version?: number): Promise<DocumentPageDTO[]> => {
+    const response = await api.get(`/auth/documents/${id}/pages/`, { params: { version } });
     return z.array(documentPageSchema).parse(response.data);
   },
 

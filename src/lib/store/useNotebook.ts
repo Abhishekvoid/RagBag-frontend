@@ -14,6 +14,8 @@ import {
   GeneratedQuestion,
   FlashCard,
   FlashCardUpdate,
+  SourceChip,
+  sourceChipSchema,
 } from "@/features/notebook/notebook.schema";
 import { v4 as uuidv4 } from "uuid";
 import { getAccessToken } from "@/lib/authToken";
@@ -42,7 +44,8 @@ export type Message = {
   sender: "user" | "ai";
   text: string;
   error?: boolean;
-  sources?: { document_id: string; title: string; snippet: string }[];
+  sources?: SourceChip[];
+  is_unanswered?: boolean;
   followups?: string[];
 };
 
@@ -85,7 +88,7 @@ type NotebookActions = {
   setActiveChapter: (chapterId: string | null) => void;
   getActiveChapter: () => Chapter | null;
   initWebSocket: () => Promise<void>;
-  sendMessage: (text: string) => Promise<void>;
+  sendMessage: (text: string, allowLibraryFallback?: boolean) => Promise<void>;
   loadChatHistory: (chapterId: string) => Promise<void>;
   loadMoreMessages: (chapterId: string) => Promise<void>;
   generateQuestions: (chapterId: string) => Promise<void>;
@@ -800,9 +803,9 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
         }
       },
 
-      sendMessage: async (text: string) => {
+      sendMessage: async (text: string, allowLibraryFallback = false) => {
         const activeChapter = get().getActiveChapter();
-        if (!activeChapter) return;
+        if (!activeChapter || get().isAiResponding) return;
 
         const userMessage: Message = { id: uuidv4(), sender: "user", text };
 
@@ -817,6 +820,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
           const aiResponse = await notebookApi.sendRagMessage({
             chapterId: activeChapter.id,
             text,
+            allowLibraryFallback,
           });
 
           const aiMessage: Message = {
@@ -825,6 +829,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
             text: aiResponse.text,
             sources: aiResponse.sources ?? [],
             followups: aiResponse.followups ?? [],
+            is_unanswered: aiResponse.is_unanswered,
           };
 
           set((state) => {
@@ -1026,8 +1031,12 @@ const toUiMessage = (m: ChatMessageDTO): Message => ({
   sender: m.sender,
   text: m.text,
   error: !!m.error,
+  is_unanswered: m.is_unanswered,
   sources: Array.isArray(m.citations)
-    ? (m.citations as { document_id: string; title: string; snippet: string }[])
+    ? m.citations.flatMap((source) => {
+        const parsed = sourceChipSchema.safeParse(source);
+        return parsed.success ? [parsed.data] : [];
+      })
     : [],
   followups: m.suggestions ?? [],
 });

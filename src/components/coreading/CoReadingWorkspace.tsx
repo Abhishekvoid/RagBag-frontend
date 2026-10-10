@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Split from "react-split";
 import { ArrowLeft, BookOpenText, ChevronDown, FileText } from "lucide-react";
 import { useCoReadingStore } from "@/lib/store/useCoReading";
@@ -13,6 +13,14 @@ import { cn } from "@/lib/utils";
 
 export function CoReadingWorkspace({ chapter }: { chapter: Chapter }) {
   const router = useRouter();
+  const search = useSearchParams();
+  const requestedDoc = search?.get("document") ?? null;
+  const requestedPage = search?.get("page") ?? null;
+  const requestedVersion = search?.get("version") ?? null;
+  const citation = requestedPage && requestedVersion
+    && /^\d+$/.test(requestedPage) && /^\d+$/.test(requestedVersion)
+    && Number(requestedPage) > 0
+    ? { page: Number(requestedPage), version: Number(requestedVersion) } : undefined;
   const isDesktop = useMediaQuery("(min-width: 1024px)", true);
   const [mobilePane, setMobilePane] = useState<"read" | "work">("read");
 
@@ -43,6 +51,10 @@ export function CoReadingWorkspace({ chapter }: { chapter: Chapter }) {
   // Default the active doc to the most recent completed one.
   useEffect(() => {
     if (readableDocs.length === 0) return;
+    if (requestedDoc) {
+      if (readableDocs.some((d) => d.id === requestedDoc)) setActiveDoc(requestedDoc);
+      return;
+    }
     const stillValid = readableDocs.some((d) => d.id === activeDocId);
     if (!stillValid) {
       const latest = [...readableDocs].sort((a, b) =>
@@ -50,7 +62,11 @@ export function CoReadingWorkspace({ chapter }: { chapter: Chapter }) {
       )[0];
       setActiveDoc(latest.id);
     }
-  }, [readableDocs, activeDocId, setActiveDoc]);
+  }, [readableDocs, activeDocId, setActiveDoc, requestedDoc]);
+
+  useEffect(() => {
+    if (requestedDoc) setMobilePane("read");
+  }, [requestedDoc, requestedPage, requestedVersion]);
 
   // Fetch content for the active document.
   useEffect(() => {
@@ -58,6 +74,14 @@ export function CoReadingWorkspace({ chapter }: { chapter: Chapter }) {
   }, [activeDocId, loadDocumentContent]);
 
   const content = activeDocId ? contentByDoc[activeDocId] : undefined;
+  const citationMissing = requestedDoc && !readableDocs.some((d) => d.id === requestedDoc);
+  const invalidCitation = (requestedPage !== null || requestedVersion !== null) && !citation;
+  const reader = citationMissing || invalidCitation ? (
+    <CenterMsg>This source is unavailable. Return to the chat and ask again for an updated citation.</CenterMsg>
+  ) : requestedDoc && requestedDoc !== activeDocId ? <ReaderSkeleton /> : (
+    <ReaderContent content={content} chapterId={chapter.id} docId={activeDocId}
+      citation={requestedDoc === activeDocId ? citation : undefined} />
+  );
 
   return (
     <div className="flex h-[100dvh] flex-col overflow-hidden bg-background text-foreground">
@@ -92,7 +116,10 @@ export function CoReadingWorkspace({ chapter }: { chapter: Chapter }) {
               />
               <select
                 value={activeDocId}
-                onChange={(e) => setActiveDoc(e.target.value)}
+                onChange={(e) => {
+                  setActiveDoc(e.target.value);
+                  router.replace(`/dashboard/chapter/${chapter.id}`);
+                }}
                 className="max-w-[220px] truncate rounded-lg border border-border bg-card/60 py-1.5 pl-8 pr-7 text-[12.5px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary/40"
               >
                 {readableDocs.map((d) => (
@@ -139,7 +166,7 @@ export function CoReadingWorkspace({ chapter }: { chapter: Chapter }) {
           className="flex min-h-0 flex-1"
         >
           <div className="h-full min-w-0 overflow-hidden">
-            <ReaderContent content={content} chapterId={chapter.id} docId={activeDocId} />
+            {reader}
           </div>
           <div className="h-full min-w-0 overflow-hidden">
             <ThinkingRail chapter={chapter} docTitles={docTitles} />
@@ -149,7 +176,7 @@ export function CoReadingWorkspace({ chapter }: { chapter: Chapter }) {
         <div className="flex min-h-0 flex-1">
           {/* Reader */}
           <div className={cn("min-w-0 flex-1", mobilePane !== "read" && "hidden")}>
-            <ReaderContent content={content} chapterId={chapter.id} docId={activeDocId} />
+            {reader}
           </div>
 
           {/* Rail */}
@@ -171,10 +198,12 @@ function ReaderContent({
   content,
   chapterId,
   docId,
+  citation,
 }: {
   content: ReturnType<typeof useCoReadingStore.getState>["contentByDoc"][string] | undefined;
   chapterId: string;
   docId: string | null;
+  citation?: { page: number; version: number };
 }) {
   if (!docId) {
     return (
@@ -188,7 +217,8 @@ function ReaderContent({
     return <CenterMsg>{content.message}</CenterMsg>;
   }
   return (
-    <PageReader chapterId={chapterId} docId={docId} fallbackText={content.content.text} />
+    <PageReader key={`${docId}-${citation?.version}-${citation?.page}`} chapterId={chapterId}
+      docId={docId} fallbackText={content.content.text} citation={citation} />
   );
 }
 
