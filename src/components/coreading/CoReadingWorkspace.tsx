@@ -6,6 +6,7 @@ import Split from "react-split";
 import { ArrowLeft, BookOpenText, ChevronDown, FileText } from "lucide-react";
 import { useCoReadingStore } from "@/lib/store/useCoReading";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { CoverageWarning } from "./CoverageWarning";
 import { PageReader } from "./PageReader";
 import { ThinkingRail } from "./ThinkingRail";
 import type { Chapter } from "@/lib/store/useNotebook";
@@ -33,7 +34,7 @@ export function CoReadingWorkspace({ chapter }: { chapter: Chapter }) {
 
   // Only completed documents can be read.
   const readableDocs = useMemo(
-    () => chapter.documents.filter((d) => d.status === "COMPLETED"),
+    () => chapter.documents.filter((d) => d.status === "COMPLETED" || (d.active_version ?? 0) > 0),
     [chapter.documents],
   );
   const docTitles = useMemo(
@@ -152,6 +153,8 @@ export function CoReadingWorkspace({ chapter }: { chapter: Chapter }) {
           ))}
         </div>
       )}
+
+      <CoverageWarning documents={chapter.documents} />
 
       {/* Body */}
       {isDesktop ? (

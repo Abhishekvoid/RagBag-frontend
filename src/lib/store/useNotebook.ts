@@ -358,13 +358,16 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
             const next = { ...state.ingestions };
             for (const d of docs) {
               if (
-                (d.status === "PENDING" || d.status === "PROCESSING") &&
+                (d.status === "PENDING" || d.status === "PROCESSING" ||
+                  (d.status === "FAILED" && d.coverage_audit?.code === "INCOMPLETE_COVERAGE")) &&
                 !next[d.id]
               ) {
                 const seed = makeOptimisticIngestion(d.id, d.title || "Document");
                 // Coarse resume: show a generic processing phase until a
                 // live WS event refines it.
-                next[d.id] = { ...seed, phase: "reading", uploadPercent: 100 };
+                next[d.id] = { ...seed, phase: d.status === "FAILED" ? "failed" : "reading",
+                  uploadPercent: 100, chapterId: d.chapter ?? null,
+                  error: d.error_message, coverageAudit: d.coverage_audit };
               }
             }
             return { ingestions: next };
@@ -407,6 +410,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
                   [ing.documentId]: {
                     ...state.ingestions[ing.documentId],
                     phase: "ready",
+                    coverageAudit: doc.coverage_audit,
                     uploadPercent: 100,
                   },
                 },
@@ -422,6 +426,7 @@ export const useNotebookStore = create<NotebookState & NotebookActions>()(
                     ...state.ingestions[ing.documentId],
                     phase: "failed",
                     error: doc.error_message ?? "Processing failed",
+                    coverageAudit: doc.coverage_audit,
                   },
                 },
               }));

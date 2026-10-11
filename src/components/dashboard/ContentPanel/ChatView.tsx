@@ -58,7 +58,7 @@ export function ChatView({ chapter }: ChatViewProps) {
   const [inputValue, setInputValue] = useState("");
   const chatContainerRef = useRef<HTMLDivElement>(null);
 
-  const hasReadableSource = chapter.documents.some((d) => d.status === "COMPLETED");
+  const hasReadableSource = chapter.documents.some((d) => d.status === "COMPLETED" || (d.active_version ?? 0) > 0);
 
   const sendMessage = useNotebookStore((state) => state.sendMessage);
   const isAiResponding = useNotebookStore((state) => state.isAiResponding);

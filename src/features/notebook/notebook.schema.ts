@@ -62,10 +62,21 @@ export type ChatSessionInput = z.infer<typeof chatSessionInputSchema>;
 export type ChatMessageInput = z.infer<typeof chatMessageInputSchema>;
 
 
+export const coverageAuditSchema = z.object({
+  code: z.literal("INCOMPLETE_COVERAGE").optional(),
+  version: z.number().optional(),
+  pages: z.array(z.object({ page_number: z.number(), review_reason: z.string() })).optional(),
+});
+export type CoverageAudit = z.infer<typeof coverageAuditSchema>;
+
 export const documentResponseSchema = z.object({
+  chapter: z.uuid().nullable().optional(),
   id: z.uuid(),
   title: z.string(),
   status: z.enum(['PENDING', 'PROCESSING', 'COMPLETED', 'FAILED']),
+  active_version: z.number().optional(),
+  coverage_audit: coverageAuditSchema.optional(),
+  active_coverage: coverageAuditSchema.optional(),
   error_message: z.string().nullable(),
   created_at: z.string(),
 });
@@ -205,7 +216,9 @@ export const documentPageSchema = z.object({
   page_number: z.number(),
   image_url: z.string(),
   reconstructed_md: z.string(),
-  text_source: z.enum(["layer", "vision", "fallback"]),
+  needs_review: z.boolean().optional(),
+  review_reason: z.string().optional(),
+  text_source: z.enum(["layer", "vision", "fallback", "ocr"]),
 });
 export type DocumentPageDTO = z.infer<typeof documentPageSchema>;
 

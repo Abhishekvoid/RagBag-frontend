@@ -91,7 +91,7 @@ export function PageReader({ docId, chapterId, fallbackText, citation }: PageRea
 }
 
 function Page({ page, cited }: { page: DocumentPageDTO; cited: boolean }) {
-  const [showScan, setShowScan] = useState(cited);
+  const [showScan, setShowScan] = useState(cited || Boolean(page.needs_review));
   return (
     <section data-page={page.page_number} tabIndex={-1} aria-label={`Page ${page.page_number}`}
       className="mx-auto mb-12 max-w-[68ch] focus-visible:outline-2 focus-visible:outline-primary">
@@ -110,6 +110,12 @@ function Page({ page, cited }: { page: DocumentPageDTO; cited: boolean }) {
         )}
       </div>
 
+      {page.needs_review && (
+        <p role="status" className="mb-4 rounded-md border border-border bg-secondary p-3 text-sm leading-relaxed">
+          We couldn’t read enough of this page. It is excluded from answers and summaries.
+          Upload a clearer scan to include it.
+        </p>
+      )}
       {showScan && page.image_url && (
         // eslint-disable-next-line @next/next/no-img-element
         <img

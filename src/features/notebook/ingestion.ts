@@ -1,18 +1,20 @@
+import type { CoverageAudit } from "./notebook.schema";
 // Ingestion phase state, reduced live from WebSocket ingestion_status events.
 
 export type IngestionPhase =
-  | "uploading" | "reading" | "naming" | "chunking"
+  | "uploading" | "reading" | "page" | "naming" | "chunking"
   | "embedding" | "storing" | "ready" | "failed";
 
 // Ordered for rendering the checklist and preventing out-of-order regressions.
 export const PHASE_ORDER: IngestionPhase[] = [
-  "uploading", "reading", "naming", "chunking",
+  "uploading", "reading", "page", "naming", "chunking",
   "embedding", "storing", "ready",
 ];
 
 export const PHASE_LABELS: Record<IngestionPhase, string> = {
   uploading: "Uploading file",
   reading: "Reading document",
+  page: "Reading pages",
   naming: "Naming chapter",
   chunking: "Chunking text",
   embedding: "Embedding",
@@ -30,6 +32,7 @@ export interface IngestionStatusEvent {
   batch?: number;
   total_batches?: number;
   error?: string;
+  coverage_audit?: CoverageAudit;
 }
 
 export interface Ingestion {
@@ -42,6 +45,7 @@ export interface Ingestion {
   batch: number | null;
   totalBatches: number | null;
   error: string | null;
+  coverageAudit?: CoverageAudit;
 }
 
 export function makeOptimisticIngestion(
@@ -83,6 +87,7 @@ export function applyIngestionEvent(
   return {
     ...base,
     phase: nextPhase,
+    coverageAudit: evt.coverage_audit ?? base.coverageAudit,
     uploadPercent: nextPhase === "uploading" ? base.uploadPercent : 100,
     chapterId: evt.chapter_id ?? base.chapterId,
     title: evt.title ?? base.title,

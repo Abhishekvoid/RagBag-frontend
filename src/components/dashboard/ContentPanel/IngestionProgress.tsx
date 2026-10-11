@@ -1,5 +1,6 @@
 "use client";
 
+import { CoverageNotice } from "@/components/coreading/CoverageWarning";
 import { Check, Loader2, Circle, AlertTriangle } from "lucide-react";
 import { useNotebookStore } from "@/lib/store/useNotebook";
 import {
@@ -30,6 +31,7 @@ export function IngestionProgress({ ingestion }: { ingestion: Ingestion }) {
           {ingestion.error ||
             "Something went wrong while processing this document."}
         </p>
+        <CoverageNotice audit={ingestion.coverageAudit} />
         <div className="mt-4 flex gap-2">
           <button
             onClick={() => retryIngestion(ingestion.documentId)}
@@ -56,7 +58,8 @@ export function IngestionProgress({ ingestion }: { ingestion: Ingestion }) {
       <p className="mb-4 font-medium text-foreground">
         Processing &ldquo;{ingestion.title || ingestion.filename}&rdquo;
       </p>
-      <ul className="space-y-2.5">
+      <CoverageNotice audit={ingestion.coverageAudit} />
+      <ul className="mt-3 space-y-2.5">
         {PHASE_ORDER.map((phase) => {
           const done = isReady || rank(phase) < current;
           const active = !isReady && phase === ingestion.phase;

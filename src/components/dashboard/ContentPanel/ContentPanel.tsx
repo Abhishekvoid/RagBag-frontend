@@ -1,4 +1,5 @@
 "use client";
+import { CoverageWarning } from "@/components/coreading/CoverageWarning";
 
 import { useEffect, useRef, useState } from "react";
 import { useNotebookStore } from "@/lib/store/useNotebook";
@@ -174,7 +175,7 @@ export function ContentPanel() {
 
   const documents = activeChapter?.documents ?? [];
   const hasDocs = documents.length > 0;
-  const hasCompleted = documents.some((d) => d.status === "COMPLETED");
+  const hasCompleted = documents.some((d) => d.status === "COMPLETED" || (d.active_version ?? 0) > 0);
   const isProcessing = documents.some(
     (d) => d.status === "PROCESSING" || d.status === "PENDING",
   );
@@ -248,7 +249,7 @@ export function ContentPanel() {
   }
 
   // ── Document is processing / pending ──
-  if (isProcessing) {
+  if (isProcessing && !hasCompleted) {
     return (
       <Shell>
         <div className="flex-1 flex items-center justify-center">
@@ -259,11 +260,11 @@ export function ContentPanel() {
   }
 
   // ── Document failed ──
-  if (hasFailed) {
+  if (hasFailed && !hasCompleted) {
     return (
       <Shell>
         <div className="flex-1 flex items-center justify-center">
-          <FailedCard onRetry={fetchSubjects} />
+          <div><CoverageWarning documents={documents} /><FailedCard onRetry={fetchSubjects} /></div>
         </div>
       </Shell>
     );
@@ -273,6 +274,7 @@ export function ContentPanel() {
   if (hasCompleted) {
     return (
       <section className="col-span-5 bg-card rounded-lg flex flex-col h-full overflow-hidden border border-border">
+        <CoverageWarning documents={documents} />
         <ChatView chapter={activeChapter} />
       </section>
     );
